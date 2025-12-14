@@ -16,7 +16,7 @@ Then, run the development server:
 npm run dev
 ```
 
-Open [http://localhost:4096](http://localhost:4096) with your browser to see the result.
+Open [http://localhost:2048](http://localhost:2048) with your browser to see the result.
 
 ## Learn More
 
