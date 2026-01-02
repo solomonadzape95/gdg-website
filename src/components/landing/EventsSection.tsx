@@ -107,7 +107,7 @@ export const EventsSection = () => {
         <div className="mb-12 flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
           <div className="flex items-start gap-3">
             <AsteriskIcon />
-            <h2 className="text-2xl font-normal leading-tight text-blackout md:text-3xl">
+            <h2 className="text-xl font-normal leading-tight text-blackout md:text-3xl">
               Stop Scrolling, Start Learning:
               <br />
               The Next Event is Happening!

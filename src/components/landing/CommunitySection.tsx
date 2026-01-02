@@ -43,11 +43,11 @@ const UsersIcon = () => (
 );
 
 const LeftBracket = () => (
- <span className='text-[20rem] text-red-500'>{`{`}</span>
+  <span className="text-[8rem] leading-none text-[#EA4335] md:text-[20rem]">{`{`}</span>
 );
 
 const RightBracket = () => (
-<span className='text-[20rem] text-red-500'>{`}`}</span>
+  <span className="text-[8rem] leading-none text-[#EA4335] md:text-[20rem]">{`}`}</span>
 );
 
 export const CommunitySection = () => {
@@ -55,8 +55,10 @@ export const CommunitySection = () => {
     <section className="bg-[#E8E8E8] px-6 py-16 md:px-20 md:py-24">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
-        <div className="mb-16 flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
+        <div className="mb-12 flex flex-col gap-6 md:mb-16 md:flex-row md:gap-8 md:items-center md:justify-between">
           <h2 className="text-2xl font-normal leading-tight text-blackout md:text-3xl">
+            <span className="text-[#EA4335]">{`{`}</span>
+            <span className="text-[#EA4335]">{` }`}</span>{' '}
             Build. Create.
             <br />
             Lead. Together.
@@ -72,7 +74,7 @@ export const CommunitySection = () => {
               chaos, or just bringing the next big idea, this is your space. All skill levels, zero gatekeeping.
             </p>
 
-            <button className="flex shrink-0 items-center gap-2 rounded-md bg-[#4285F4] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#4285F4]/90">
+            <button className="flex shrink-0 items-center gap-2 rounded-md bg-[#4285F4] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#4285F4]/90 md:mt-0 mt-4">
               Become a member
               <UsersIcon />
             </button>
@@ -80,24 +82,20 @@ export const CommunitySection = () => {
         </div>
 
         {/* Group Photo with Decorative Elements */}
-        <div className="relative flex items-center justify-center">
-          {/* Left Bracket */}
-          <div className="hidden shrink-0 md:block">
-            <LeftBracket />
-          </div>
+        <div className="relative flex flex-col items-center justify-center md:flex-row md:w-2/3 mx-auto">
 
           {/* Photo Container with Masked Circles */}
-          <div className="relative mx-4 md:mx-0 ">
+          <div className="relative w-full max-w-full md:mx-0">
             {/* Mobile */}
-            <div className="relative mx-auto h-48 w-[500px] max-w-full md:hidden">
-              {/* Yellow Background Circles */}
+            <div className="relative mx-auto h-[200px] w-full max-w-[350px] aspect-[3.5/2] md:hidden">
+              {/* Yellow Background Circles - tuned for mobile proportion */}
               <div
                 className="absolute inset-0 bg-[#FBBC04]"
                 style={{
                   WebkitMaskImage:
-                    'radial-gradient(circle 96px at 25% 50%, black 100%, transparent 100%), radial-gradient(circle 96px at 50% 50%, black 100%, transparent 100%), radial-gradient(circle 96px at 75% 50%, black 100%, transparent 100%)',
+                    'radial-gradient(circle 64px at 22% 52%, black 100%, transparent 100%), radial-gradient(circle 72px at 50% 51%, black 100%, transparent 100%), radial-gradient(circle 66px at 78% 52%, black 100%, transparent 100%)',
                   maskImage:
-                    'radial-gradient(circle 96px at 25% 50%, black 100%, transparent 100%), radial-gradient(circle 96px at 50% 50%, black 100%, transparent 100%), radial-gradient(circle 96px at 75% 50%, black 100%, transparent 100%)',
+                    'radial-gradient(circle 64px at 22% 52%, black 100%, transparent 100%), radial-gradient(circle 72px at 50% 51%, black 100%, transparent 100%), radial-gradient(circle 66px at 78% 52%, black 100%, transparent 100%)',
                   WebkitMaskComposite: 'source-over',
                   maskComposite: 'add',
                 }}
@@ -107,9 +105,9 @@ export const CommunitySection = () => {
                 className="absolute inset-0"
                 style={{
                   WebkitMaskImage:
-                    'radial-gradient(circle 93px at 25% 50%, black 100%, transparent 100%), radial-gradient(circle 93px at 50% 50%, black 100%, transparent 100%), radial-gradient(circle 93px at 75% 50%, black 100%, transparent 100%)',
+                    'radial-gradient(circle 60px at 22% 52%, black 100%, transparent 100%), radial-gradient(circle 68px at 50% 51%, black 100%, transparent 100%), radial-gradient(circle 62px at 78% 52%, black 100%, transparent 100%)',
                   maskImage:
-                    'radial-gradient(circle 93px at 25% 50%, black 100%, transparent 100%), radial-gradient(circle 93px at 50% 50%, black 100%, transparent 100%), radial-gradient(circle 93px at 75% 50%, black 100%, transparent 100%)',
+                    'radial-gradient(circle 60px at 22% 52%, black 100%, transparent 100%), radial-gradient(circle 68px at 50% 51%, black 100%, transparent 100%), radial-gradient(circle 62px at 78% 52%, black 100%, transparent 100%)',
                   WebkitMaskComposite: 'source-over',
                   maskComposite: 'add',
                 }}
@@ -118,11 +116,18 @@ export const CommunitySection = () => {
                   src={groupImage}
                   alt="GDG UNN Community"
                   fill
-                  className="object-cover object-top"
+                  className="object-cover object-center"
+                  sizes="(max-width: 350px) 100vw, 350px"
+                  priority
                 />
                 {/* Yellow tint overlay */}
                 <div className="absolute inset-0 bg-[#FBBC04]/20 mix-blend-multiply" />
               </div>
+            </div>
+
+            {/* Desktop: Left Bracket */}
+            <div className="hidden shrink-0 md:block md:absolute md:-left-20 md:top-1/2 md:-translate-y-1/2">
+              <LeftBracket />
             </div>
 
             {/* Tablet */}
@@ -163,7 +168,7 @@ export const CommunitySection = () => {
             </div>
 
             {/* Desktop */}
-            <div className="relative mx-auto hidden h-72 w-[750px] max-w-full lg:block ">
+            <div className="relative mx-auto hidden h-72 w-[750px] max-w-full lg:block">
               {/* Yellow Background Circles */}
               <div
                 className="absolute inset-0 bg-[#FBBC04]"
@@ -198,16 +203,16 @@ export const CommunitySection = () => {
                 <div className="absolute inset-0 bg-[#FBBC04]/20 mix-blend-multiply" />
               </div>
             </div>
-          </div>
 
-          {/* Right Bracket */}
-          <div className="hidden shrink-0 md:block">
-            <RightBracket />
+            {/* Desktop: Right Bracket */}
+            <div className="hidden shrink-0 md:block md:absolute md:-right-20 md:top-1/2 md:-translate-y-1/2">
+              <RightBracket />
+            </div>
           </div>
         </div>
 
         {/* Footer Text */}
-        <div className="mt-16 flex items-center justify-center gap-1 w-full ">
+        <div className="mt-16 flex items-center justify-center gap-1 w-full md:flex-row flex-col">
           <Image
             src={gdgLogo}
             alt="GDG Logo"

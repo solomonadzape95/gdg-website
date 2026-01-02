@@ -53,7 +53,7 @@ export const HeroSection = () => {
       </div>
       </section>
       {/* Photo strip */}
-      <div className="mx-auto w-full bg-white px-1.5 md:px-2 pt-1 pb-2 flex justify-center h-[60vh]">
+      <div className="hidden mx-auto w-full bg-white px-1.5 md:px-2 pt-1 pb-2 md:flex justify-center h-[60vh]">
         <div
           className="
             grid grid-cols-13 h-full gap-1 md:gap-2 w-full
@@ -99,6 +99,54 @@ export const HeroSection = () => {
           </div>
         </div>
       </div>
+        {/* Photo strip Mobile */}
+        <div className="md:hidden mx-auto w-full bg-white px-1.5 pt-1 pb-2 flex justify-center">
+          <div className="w-full max-w-[360px] flex flex-col gap-2 h-[60vh]">
+
+            {/* Top row: two small horizontal images */}
+            <div className="flex gap-2 h-[100px] min-h-[46px]">
+              <div className="relative w-1/2 overflow-hidden bg-[#E0E0E0]">
+                <Image src={hero1} alt="GDG UNN group" fill className="object-cover" />
+              </div>
+              <div className="relative w-1/2 overflow-hidden bg-[#E0E0E0]">
+                <Image src={hero2} alt="GDG UNN audience" fill className="object-cover" />
+              </div>
+            </div>
+  {/* Third row: two stacked images */}
+  <div className="flex gap-2 h-[100px] min-h-[72px]">
+              <div className="relative w-1/3 overflow-hidden bg-[#E0E0E0]">
+                <Image src={hero6} alt="GDG UNN team action" fill className="object-cover" />
+              </div>
+              <div className="relative w-2/3 overflow-hidden bg-[#E0E0E0]">
+                <Image src={hero7} alt="GDG UNN group photo" fill className="object-cover" />
+              </div>
+            </div>
+            {/* Large vertical image */}
+            <div className="relative w-full flex-1 min-h-[160px] max-h-[210px] rounded-[7px] overflow-hidden bg-[#E0E0E0]">
+              <Image src={hero5} alt="GDG UNN hall audience" fill className="object-cover" />
+            </div>
+
+            {/* Second row: two stacked images */}
+            <div className="flex gap-2 h-[190px] min-h-[72px]">
+            <div className="relative w-1/2 h-full overflow-hidden bg-[#E0E0E0]">
+                <Image src={hero8} alt="GDG UNN team lineup" fill className="object-cover" />
+              </div>
+              <div className="flex gap-2 h-full min-h-[72px] flex-col w-1/2">
+              <div className="relative w-full h-1/2 overflow-hidden bg-[#E0E0E0]">
+                <Image
+                  src={hero3}
+                  alt="GDG UNN event focus"
+                  fill
+                  className="object-cover object-top"
+                />
+              </div>
+              <div className="relative w-full h-1/2 overflow-hidden bg-[#E0E0E0]">
+                <Image src={hero4} alt="GDG UNN active audience" fill className="object-cover" />
+              </div>
+              </div>
+            </div>
+          </div>
+        </div>
     </section>
   );
 };
