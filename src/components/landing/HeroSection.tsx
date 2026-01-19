@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 
 import bgGrid from '@/assets/bg-grid.jpg';
 import hero1 from '@/assets/hero-1.jpg';
@@ -42,13 +43,19 @@ export const HeroSection = () => {
 
         {/* CTA buttons */}
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <button className="bg-[#4285F4] px-5 py-2.5 text-sm font-medium text-white shadow-[0_8px_20px_rgba(66,133,244,0.35)] transition-transform hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(66,133,244,0.4)]">
+          <Link 
+            href="/auth?mode=signup"
+            className="bg-[#4285F4] px-5 py-2.5 text-sm font-medium text-white shadow-[0_8px_20px_rgba(66,133,244,0.35)] transition-transform hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(66,133,244,0.4)] rounded"
+          >
             Become a member
-          </button>
-          <button className="flex items-center gap-1.5 border border-[#DADCE0] bg-white px-5 py-2.5 text-sm font-medium text-blackout transition-colors hover:border-[#4285F4] hover:text-[#4285F4]">
+          </Link>
+          <Link 
+            href="/auth?mode=signup"
+            className="flex items-center gap-1.5 border border-[#DADCE0] bg-white px-5 py-2.5 text-sm font-medium text-blackout transition-colors hover:border-[#4285F4] hover:text-[#4285F4] rounded"
+          >
             Join our next event
             <span aria-hidden>↗</span>
-          </button>
+          </Link>
         </div>
       </div>
       </section>

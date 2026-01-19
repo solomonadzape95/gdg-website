@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 
 import ctaImage from '@/assets/cta.png';
 
@@ -73,12 +74,12 @@ export const CTASection = () => {
             />
           </div>
 
-          <button
-            type="submit"
-            className="mt-4 rounded-md border border-white bg-transparent px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white hover:text-alexandra"
+          <Link
+            href="/auth?mode=signup"
+            className="mt-4 inline-block rounded-md border border-white bg-transparent px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white hover:text-alexandra text-center"
           >
             Plug me in
-          </button>
+          </Link>
         </form>
       </div>
     </section>

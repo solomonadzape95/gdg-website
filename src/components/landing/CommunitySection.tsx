@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 
 import groupImage from '@/assets/group.png';
 import gdgLogo from '@/assets/smaller-logo.png';
@@ -74,10 +75,13 @@ export const CommunitySection = () => {
               chaos, or just bringing the next big idea, this is your space. All skill levels, zero gatekeeping.
             </p>
 
-            <button className="flex shrink-0 items-center gap-2 rounded-md bg-[#4285F4] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#4285F4]/90 md:mt-0 mt-4">
+            <Link 
+              href="/auth?mode=signup"
+              className="flex shrink-0 items-center gap-2 rounded-md bg-[#4285F4] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#4285F4]/90 md:mt-0 mt-4"
+            >
               Become a member
               <UsersIcon />
-            </button>
+            </Link>
           </div>
         </div>
 
