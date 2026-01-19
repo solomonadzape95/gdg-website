@@ -91,3 +91,7 @@ input[data-autocompleted] {
 .team-scroll::-webkit-scrollbar {
   display: none; /* Chrome/Safari/Opera */
 }
+.react-p5 {
+  width: 100% !important;
+  height: 100% !important;
+}

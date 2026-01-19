@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import bottome from '@/assets/bottom-e.png';
 import topleft from '@/assets/top-left-e.png';
 import righte from '@/assets/right-e.png';
+import PillCanvas from "@/components/auth/PillCanvas";
 
 
 export default function  AuthLayout({children} : {children: React.ReactNode}) {
@@ -17,7 +18,7 @@ export default function  AuthLayout({children} : {children: React.ReactNode}) {
     <Image src={topleft} className="absolute top-0 right-0 w-1/3 md:w-2/3" alt="top-left ellipse"/>
     <Image src={bottome} className="absolute -bottom-4 md:bottom-0 w-1/2 right-1/2 translate-x-1/2 md:w-auto" alt="bottom ellipse"/>
     <Image src={righte} className="absolute left-0 w-1/3 md:w-1/2 top-1/2 -translate-y-1/2" alt="right ellipse"/>
-
+    <div className="absolute z-20 inset-0 w-full h-full "><PillCanvas/></div>
     {/* main centre text */}
     <div className="text-black z-10 max-w-4/5 mx-auto space-y-2 text-center">
       <AnimatePresence mode="wait">
