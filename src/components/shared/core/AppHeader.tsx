@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 
 import { ReactSVG } from 'react-svg';
@@ -10,8 +12,34 @@ import Image from 'next/image';
 
 import Link from 'next/link';
 
+import { useAuth } from '@/contexts/AuthContext';
+
+type LinkItem = { target: string; label: string };
+
+function getHeaderLinks(isLoggedIn: boolean, isAdmin: boolean): LinkItem[][] {
+  const base = links.header[0] as LinkItem[];
+  const authGroup: LinkItem[] = isLoggedIn
+    ? [
+        { target: '/dashboard', label: 'Dashboard' },
+        ...(isAdmin ? [{ target: '/admin', label: 'Admin' }] : []),
+        { target: '#', label: 'Log out' },
+      ]
+    : [{ target: '/auth?mode=login', label: 'Log in' }];
+  return [base, authGroup];
+}
+
 export const AppHeader = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { user, logout, isHydrated } = useAuth();
+  const headerLinks = getHeaderLinks(!!user, user?.is_admin ?? false);
+
+  const handleNavClick = (item: LinkItem) => {
+    if (item.label === 'Log out') {
+      logout();
+      window.location.href = '/';
+    }
+    setIsDrawerOpen(false);
+  };
 
   return (
     <>
@@ -46,15 +74,26 @@ export const AppHeader = () => {
             />
           </header>
           <nav className="z-20 mt-15 flex w-full flex-col gap-10 px-8">
-            {links.header.flat().map(({ target, label }) => (
-              <Link
-                onClick={() => setIsDrawerOpen(false)}
-                className="text-solid-matte-gray text-xl"
-                href={target}
-                key={label}
-              >
-                {label}
-              </Link>
+            {isHydrated && headerLinks.flat().map(({ target, label }) => (
+              label === 'Log out' ? (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => handleNavClick({ target, label })}
+                  className="text-solid-matte-gray text-xl text-left hover:underline"
+                >
+                  {label}
+                </button>
+              ) : (
+                <Link
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="text-solid-matte-gray text-xl"
+                  href={target}
+                  key={label}
+                >
+                  {label}
+                </Link>
+              )
             ))}
           </nav>
         </aside>
@@ -67,18 +106,28 @@ export const AppHeader = () => {
           <ReactSVG src="/graphics/logo-banner.svg" />
         </Link>
         <nav className="hidden items-center md:flex">
-          {links.header.map((group, index) => (
+          {isHydrated && headerLinks.map((group, index) => (
             <article className="flex items-center" key={index}>
               <ul className="flex items-center gap-8.5">
                 {group.map(({ target, label }) => (
                   <li key={label}>
-                    <Link className="hover:underline" href={target}>
-                      {label}
-                    </Link>
+                    {label === 'Log out' ? (
+                      <button
+                        type="button"
+                        onClick={() => handleNavClick({ target, label })}
+                        className="hover:underline"
+                      >
+                        {label}
+                      </button>
+                    ) : (
+                      <Link className="hover:underline" href={target}>
+                        {label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
-              {index !== links.header.length - 1 && (
+              {index !== headerLinks.length - 1 && (
                 <ReactSVG src="/graphics/divide-x.svg" className="mx-8.5" />
               )}
             </article>

@@ -1,30 +1,18 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { api } from '@/lib/api';
+import type { Event } from '@/lib/api';
 
-import eventImage from '@/assets/event.png';
-
-const events = [
-  {
-    id: 1,
-    title: "Landing Your First Internship: Students' Markup",
-    date: 'Sunday, February 16th',
-    location: 'Computer Science Lecture Hall',
-  },
-  {
-    id: 2,
-    title: 'Fundamentals of Deep Learning: The AI Toolkit Workshop',
-    date: 'Saturday, March 29th',
-    location: 'Roar Nigeria Hub, UNN',
-  },
-  {
-    id: 3,
-    title: 'Beyond the Pixels: UI/UX Masterclass for Beginners',
-    date: 'Friday, April 11th',
-    location: 'Engineering New Annex Hall',
-  },
-];
+function formatEventDate(d: string) {
+  return new Date(d).toLocaleDateString('en-NG', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+}
 
 const AsteriskIcon = () => (
   <svg
@@ -88,7 +76,25 @@ const ChevronRight = () => (
 
 export const EventsSection = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    api
+      .getEvents({ limit: 6 })
+      .then((list) => setEvents(Array.isArray(list) ? list : []))
+      .catch(() => setEvents([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filteredEvents = searchQuery.trim()
+    ? events.filter(
+        (e) =>
+          e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (e.location?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+      )
+    : events;
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
@@ -141,39 +147,57 @@ export const EventsSection = () => {
           className="mb-8 flex gap-6 overflow-x-auto pb-4 scrollbar-hide"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
-          {events.map((event) => (
-            <article
-              key={event.id}
-              className="min-w-[300px] flex-shrink-0 overflow-hidden rounded-xl bg-white shadow-sm transition-shadow hover:shadow-md md:min-w-[340px]"
-            >
-              {/* Event Image */}
-              <div className="relative h-44 w-full">
-                <Image
-                  src={eventImage}
-                  alt={event.title}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-
-              {/* Event Details */}
-              <div className="p-5">
-                <h3 className="mb-4 min-h-[3.5rem] text-base font-medium leading-snug text-blackout">
-                  {event.title}
-                </h3>
-
-                <div className="flex items-end justify-between">
-                  <div>
-                    <p className="text-sm text-blackout">{event.date}</p>
-                    <p className="text-sm text-alexandra">{event.location}</p>
-                  </div>
-                  <button className="rounded-md bg-blackout px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blackout/90">
-                    RSVP
-                  </button>
+          {loading ? (
+            <p className="text-sm text-solid-matte-gray py-8">Loading events...</p>
+          ) : filteredEvents.length === 0 ? (
+            <p className="text-sm text-solid-matte-gray py-8">No events found.</p>
+          ) : (
+            filteredEvents.map((event) => (
+              <article
+                key={event.id}
+                className="min-w-[300px] flex-shrink-0 overflow-hidden rounded-xl bg-white shadow-sm transition-shadow hover:shadow-md md:min-w-[340px]"
+              >
+                {/* Event Image */}
+                <div className="relative h-44 w-full bg-[#E0E0E0]">
+                  {event.image_url ? (
+                    <Image
+                      src={event.image_url}
+                      alt={event.title}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-sm text-solid-matte-gray">Event</span>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </article>
-          ))}
+
+                {/* Event Details */}
+                <div className="p-5">
+                  <h3 className="mb-4 min-h-[3.5rem] text-base font-medium leading-snug text-blackout">
+                    {event.title}
+                  </h3>
+
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <p className="text-sm text-blackout">{formatEventDate(event.date)}</p>
+                      {event.location && (
+                        <p className="text-sm text-alexandra">{event.location}</p>
+                      )}
+                    </div>
+                    <Link
+                      href={`/dashboard/events/${event.id}`}
+                      className="rounded-md bg-blackout px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blackout/90"
+                    >
+                      View details
+                    </Link>
+                  </div>
+                </div>
+              </article>
+            ))
+          )}
         </div>
 
         {/* Navigation Arrows */}

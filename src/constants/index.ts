@@ -23,7 +23,7 @@ export const links = {
     ],
     [
       {
-        target: '/login',
+        target: '/auth?mode=login',
         label: 'Log in'
       }
     ]

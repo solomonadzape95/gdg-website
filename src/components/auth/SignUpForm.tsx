@@ -7,12 +7,13 @@ import { z } from 'zod';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { api, ApiError } from '@/lib/api';
 
 const signUpSchema = z
   .object({
     fullName: z.string().min(2, 'Full name must be at least 2 characters'),
     email: z.string().email('Please enter a valid email address'),
-    phoneNumber: z.string().min(10, 'Please enter a valid phone number'),
+    phoneNumber: z.string().optional(),
     password: z.string().min(8, 'Password must be at least 8 characters'),
     confirmPassword: z.string(),
     agreeToTerms: z.boolean().refine((val) => val === true, {
@@ -30,6 +31,7 @@ export const SignUpForm = () => {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     register,
@@ -42,14 +44,25 @@ export const SignUpForm = () => {
     },
   });
 
-  const onSubmit = (data: SignUpFormData) => {
-    console.log('Sign up data:', data);
-    // Handle sign up logic here
+  const onSubmit = async (data: SignUpFormData) => {
+    setSubmitError(null);
+    try {
+      await api.register({
+        email: data.email,
+        full_name: data.fullName,
+        password: data.password,
+        confirm_password: data.confirmPassword,
+        phone: data.phoneNumber?.trim() || undefined,
+      });
+      router.push('/auth?mode=login');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (e) {
+      setSubmitError(e instanceof ApiError ? e.message : 'Registration failed. Please try again.');
+    }
   };
 
   const handleGoogleSignUp = () => {
     console.log('Google sign up');
-    // Handle Google sign up logic here
   };
 
   return (
@@ -76,6 +89,10 @@ export const SignUpForm = () => {
             start building.
           </p>
         </motion.div>
+
+        {submitError && (
+          <p className="mb-4 text-sm text-red-500 text-center">{submitError}</p>
+        )}
 
         {/* Form */}
         <motion.form
@@ -119,26 +136,22 @@ export const SignUpForm = () => {
             )}
           </div>
 
-          {/* Phone Number */}
+          {/* Phone Number (optional) */}
           <div>
             <label htmlFor="phoneNumber" className="block text-sm font-medium text-blackout mb-2">
-              Phone number
+              Phone number (optional)
             </label>
             <input
               type="tel"
               id="phoneNumber"
               {...register('phoneNumber')}
-              placeholder="Enter your WhatsApp number"
+              placeholder="+2348012345678 (optional)"
               className="w-full px-4 py-3 border border-[#DADCE0] rounded-none focus:outline-none focus:ring-2 focus:ring-alexandra focus:border-transparent text-blackout bg-white placeholder:text-[#9AA0A6]"
             />
-            {errors.phoneNumber && (
-              <p className="mt-1 text-sm text-red-500">{errors.phoneNumber.message}</p>
-            )}
           </div>
 
-          {/* Password Fields - Side by side on larger screens */}
+          {/* Password Fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-blackout mb-2">
                 Password
@@ -163,7 +176,6 @@ export const SignUpForm = () => {
               )}
             </div>
 
-            {/* Confirm Password */}
             <div>
               <label
                 htmlFor="confirmPassword"
@@ -230,6 +242,7 @@ export const SignUpForm = () => {
         {/* Google Sign Up Button */}
         <button
           onClick={handleGoogleSignUp}
+          type="button"
           className="w-full flex items-center justify-center gap-3 border border-[#DADCE0] bg-white text-blackout py-3 px-4 rounded-none font-medium hover:border-alexandra hover:text-alexandra transition-colors mb-6"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -253,7 +266,7 @@ export const SignUpForm = () => {
           <span>Sign in with Google</span>
         </button>
 
-        {/* Login Link - At the bottom */}
+        {/* Login Link */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -265,7 +278,6 @@ export const SignUpForm = () => {
             type="button"
             onClick={() => {
               router.push('/auth?mode=login');
-              // Scroll to top when switching modes
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className="text-[#F9AB00] hover:text-[#EA4335] font-medium underline-offset-2 hover:underline transition-colors"

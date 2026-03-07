@@ -28,7 +28,7 @@ const navSections = [
     title: 'Legal & Info',
     links: [
       { label: 'Privacy Policy', href: '#privacy' },
-      { label: 'Admin Login', href: '#admin' },
+      { label: 'Admin Login', href: '/admin' },
       { label: 'GDG Code of Conduct', href: '#code-of-conduct' }
     ]
   }
