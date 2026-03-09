@@ -5,11 +5,15 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { api, ApiError } from '@/lib/api';
-import type { BlogPostAdmin, Project } from '@/lib/api';
+import type { BlogPostAdmin, Project, EventRegistration, Event } from '@/lib/api';
 import { cls } from '@/utils';
 
 type ProjectWithContributors = Project & {
   contributors?: Array<{ user_id: string }>;
+};
+
+type RegistrationWithEvent = EventRegistration & {
+  event?: Event;
 };
 
 export default function ProfilePage() {
@@ -23,6 +27,8 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [myPosts, setMyPosts] = useState<BlogPostAdmin[]>([]);
   const [myProjects, setMyProjects] = useState<ProjectWithContributors[]>([]);
+  const [myRegistrations, setMyRegistrations] = useState<RegistrationWithEvent[]>([]);
+  const [registeredEvents, setRegisteredEvents] = useState<Event[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
 
   useEffect(() => {
@@ -46,10 +52,17 @@ export default function ProfilePage() {
           return proj.contributors?.some((c) => c.user_id === user?.id) ?? false;
         });
       }),
+      api.getMyRegistrations(token).catch(() => []),
+      api.getEvents({ limit: 200 }).catch(() => []),
     ])
-      .then(([posts, projects]) => {
+      .then(([posts, projects, regs, events]) => {
         setMyPosts(Array.isArray(posts) ? posts : []);
         setMyProjects(projects);
+        const regList = Array.isArray(regs) ? regs : [];
+        setMyRegistrations(regList);
+        const eventList = Array.isArray(events) ? events : [];
+        const regEventIds = new Set(regList.map((r: RegistrationWithEvent) => r.event_id));
+        setRegisteredEvents(eventList.filter((ev: Event) => regEventIds.has(ev.id)));
       })
       .catch(() => {})
       .finally(() => setActivityLoading(false));
@@ -317,7 +330,7 @@ export default function ProfilePage() {
         </Link>
       </section>
 
-      {/* Events I've registered for - placeholder */}
+      {/* Events I've registered for */}
       <section
         className={cls(
           'rounded-2xl border border-[#DADCE0] bg-white p-6 shadow-sm',
@@ -327,9 +340,30 @@ export default function ProfilePage() {
         <h2 className={cls('text-lg font-semibold text-blackout mb-4')}>
           Events I&apos;ve registered for
         </h2>
-        <p className={cls('text-sm text-solid-matte-gray')}>
-          No events registered yet. Event registration coming soon.
-        </p>
+        {activityLoading ? (
+          <p className={cls('text-sm text-solid-matte-gray')}>Loading...</p>
+        ) : registeredEvents.length === 0 ? (
+          <p className={cls('text-sm text-solid-matte-gray mb-4')}>No events registered yet.</p>
+        ) : (
+          <ul className={cls('space-y-3')}>
+            {registeredEvents.map((ev) => (
+              <li key={ev.id}>
+                <Link
+                  href={`/dashboard/events/${ev.id}`}
+                  className={cls(
+                    'block py-2 px-3 rounded-lg border border-[#DADCE0]',
+                    'hover:border-alexandra/50 hover:bg-alexandra/5 transition-colors'
+                  )}
+                >
+                  <span className={cls('font-medium text-blackout')}>{ev.title}</span>
+                  <span className={cls('ml-2 text-xs text-solid-matte-gray')}>
+                    {new Date(ev.date).toLocaleDateString('en-NG', { dateStyle: 'medium' })}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
         <Link
           href="/dashboard/events"
           className={cls(

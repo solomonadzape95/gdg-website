@@ -196,6 +196,60 @@ export const api = {
     return request<void>(`/events/${id}`, { method: 'DELETE', token });
   },
 
+  addSpeaker(
+    eventId: string,
+    payload: { name: string; bio: string; image_url?: string | null; topic?: string | null; niche: string },
+    token: string
+  ): Promise<Speaker> {
+    return request<Speaker>(`/events/${eventId}/speakers`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      token,
+    });
+  },
+
+  updateSpeaker(
+    eventId: string,
+    speakerId: string,
+    payload: { name?: string; bio?: string; image_url?: string | null; topic?: string | null; niche?: string },
+    token: string
+  ): Promise<Speaker> {
+    return request<Speaker>(`/events/${eventId}/speakers/${speakerId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+      token,
+    });
+  },
+
+  removeSpeaker(eventId: string, speakerId: string, token: string): Promise<void> {
+    return request<void>(`/events/${eventId}/speakers/${speakerId}`, {
+      method: 'DELETE',
+      token,
+    });
+  },
+
+  registerForEvent(eventId: string, token: string): Promise<EventRegistration> {
+    return request<EventRegistration>(`/events/${eventId}/register`, {
+      method: 'POST',
+      token,
+    });
+  },
+
+  unregisterFromEvent(eventId: string, token: string): Promise<void> {
+    return request<void>(`/events/${eventId}/register`, {
+      method: 'DELETE',
+      token,
+    });
+  },
+
+  getRegistrationStatus(eventId: string, token: string): Promise<{ registered: boolean }> {
+    return request<{ registered: boolean }>(`/events/${eventId}/registration`, { token });
+  },
+
+  getMyRegistrations(token: string): Promise<EventRegistration[]> {
+    return request<EventRegistration[]>('/events/me/registrations', { token });
+  },
+
   getProjects(params?: { status?: string; limit?: number }): Promise<Project[]> {
     const search = new URLSearchParams();
     if (params?.status) search.set('status', params.status);
@@ -251,6 +305,63 @@ export const api = {
 
   deleteProject(id: string, token: string): Promise<void> {
     return request<void>(`/api/v1/projects/${id}`, { method: 'DELETE', token });
+  },
+
+  getProjectContributors(projectId: string): Promise<ProjectContributor[]> {
+    return request<ProjectContributor[]>(`/api/v1/projects/${projectId}/contributors`);
+  },
+
+  addContributor(
+    projectId: string,
+    payload: { user_id: string; role: string },
+    token: string
+  ): Promise<ProjectContributor> {
+    return request<ProjectContributor>(`/api/v1/projects/${projectId}/contributors`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      token,
+    });
+  },
+
+  removeContributor(projectId: string, userId: string, token: string): Promise<void> {
+    return request<void>(`/api/v1/projects/${projectId}/contributors/${userId}`, {
+      method: 'DELETE',
+      token,
+    });
+  },
+
+  applyToProject(
+    projectId: string,
+    payload: { role: string },
+    token: string
+  ): Promise<ProjectApplication> {
+    return request<ProjectApplication>(`/api/v1/projects/${projectId}/apply`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      token,
+    });
+  },
+
+  getProjectApplications(projectId: string, token: string): Promise<ProjectApplication[]> {
+    return request<ProjectApplication[]>(`/api/v1/projects/${projectId}/applications`, { token });
+  },
+
+  approveApplication(projectId: string, applicantId: string, token: string): Promise<ProjectApplication> {
+    return request<ProjectApplication>(
+      `/api/v1/projects/${projectId}/applications/${applicantId}/approve`,
+      { method: 'PATCH', token }
+    );
+  },
+
+  rejectApplication(projectId: string, applicantId: string, token: string): Promise<void> {
+    return request<void>(
+      `/api/v1/projects/${projectId}/applications/${applicantId}`,
+      { method: 'DELETE', token }
+    );
+  },
+
+  getMyApplications(token: string): Promise<ProjectApplication[]> {
+    return request<ProjectApplication[]>('/api/v1/projects/me/applications', { token });
   },
 
   getBlogposts(params?: { skip?: number; limit?: number }): Promise<BlogPost[]> {
@@ -335,6 +446,17 @@ export const api = {
   },
 };
 
+export type Speaker = {
+  id: string;
+  event_id: string;
+  name: string;
+  bio: string;
+  image_url: string | null;
+  topic: string | null;
+  niche: string;
+  added_at: string;
+};
+
 export type Event = {
   id: string;
   title: string;
@@ -345,7 +467,23 @@ export type Event = {
   image_url: string | null;
   location: string | null;
   attendees?: number;
+  speakers?: Speaker[];
   created_at: string;
+};
+
+export type EventRegistration = {
+  id: string;
+  event_id: string;
+  user_id: string;
+  registered_at: string;
+};
+
+export type ProjectContributor = {
+  id: string;
+  user_id: string;
+  role: string;
+  added_at: string;
+  user: { id: string; full_name: string | null; email: string };
 };
 
 export type Project = {
@@ -361,6 +499,16 @@ export type Project = {
   demo_video_url: string | null;
   status: 'ongoing' | 'completed';
   created_at: string;
+  creator?: { id: string; full_name: string | null; email: string };
+  contributors?: ProjectContributor[];
+};
+
+export type ProjectApplication = {
+  id: string;
+  user_id: string;
+  project_id: string;
+  role: string;
+  is_contributor: boolean;
 };
 
 export type BlogPost = {

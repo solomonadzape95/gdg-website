@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { api, ApiError } from '@/lib/api';
-import type { Project } from '@/lib/api';
+import type { Project, ProjectContributor, ProjectApplication, User } from '@/lib/api';
 import { cls } from '@/utils';
 
 export default function AdminProjectsPage() {
@@ -14,6 +14,7 @@ export default function AdminProjectsPage() {
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [managingProject, setManagingProject] = useState<Project | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
 
@@ -54,49 +55,26 @@ export default function AdminProjectsPage() {
   const formatDate = (d: string | null) =>
     d ? new Date(d).toLocaleDateString('en-NG', { dateStyle: 'medium' }) : '—';
 
-  const displayList = projects;
-
   return (
     <div className={cls('space-y-6')}>
       <div className={cls('flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4')}>
         <h1 className={cls('text-2xl font-semibold text-blackout')}>Projects management</h1>
         <div className={cls('flex gap-2 flex-wrap')}>
-          <button
-            type="button"
-            onClick={() => setStatusFilter('all')}
-            className={cls(
-              'px-3 py-1.5 rounded-lg text-sm font-medium',
-              statusFilter === 'all'
-                ? 'bg-alexandra text-white'
-                : 'border border-[#DADCE0] text-blackout hover:bg-tech-white'
-            )}
-          >
-            All
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter('ongoing')}
-            className={cls(
-              'px-3 py-1.5 rounded-lg text-sm font-medium',
-              statusFilter === 'ongoing'
-                ? 'bg-alexandra text-white'
-                : 'border border-[#DADCE0] text-blackout hover:bg-tech-white'
-            )}
-          >
-            Ongoing
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter('completed')}
-            className={cls(
-              'px-3 py-1.5 rounded-lg text-sm font-medium',
-              statusFilter === 'completed'
-                ? 'bg-alexandra text-white'
-                : 'border border-[#DADCE0] text-blackout hover:bg-tech-white'
-            )}
-          >
-            Completed
-          </button>
+          {(['all', 'ongoing', 'completed'] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setStatusFilter(s)}
+              className={cls(
+                'px-3 py-1.5 rounded-lg text-sm font-medium',
+                statusFilter === s
+                  ? 'bg-alexandra text-white'
+                  : 'border border-[#DADCE0] text-blackout hover:bg-tech-white'
+              )}
+            >
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </button>
+          ))}
           <button
             type="button"
             onClick={() => setShowCreateModal(true)}
@@ -124,10 +102,8 @@ export default function AdminProjectsPage() {
       >
         {loading ? (
           <div className={cls('p-8 text-center text-solid-matte-gray')}>Loading...</div>
-        ) : displayList.length === 0 ? (
-          <div className={cls('p-8 text-center text-solid-matte-gray')}>
-            No projects found.
-          </div>
+        ) : projects.length === 0 ? (
+          <div className={cls('p-8 text-center text-solid-matte-gray')}>No projects found.</div>
         ) : (
           <div className={cls('overflow-x-auto')}>
             <table className={cls('w-full text-left')}>
@@ -141,7 +117,7 @@ export default function AdminProjectsPage() {
                 </tr>
               </thead>
               <tbody>
-                {displayList.map((p) => (
+                {projects.map((p) => (
                   <tr key={p.id} className={cls('border-b border-[#DADCE0] hover:bg-tech-white/50')}>
                     <td className={cls('px-4 py-3')}>
                       <Link
@@ -168,7 +144,7 @@ export default function AdminProjectsPage() {
                     <td className={cls('px-4 py-3 text-sm text-solid-matte-gray')}>
                       {formatDate(p.created_at)}
                     </td>
-                    <td className={cls('px-4 py-3 flex gap-2')}>
+                    <td className={cls('px-4 py-3 flex gap-2 flex-wrap')}>
                       <Link
                         href={`/dashboard/projects/${p.id}`}
                         className={cls('text-alexandra hover:underline text-sm font-medium')}
@@ -179,19 +155,23 @@ export default function AdminProjectsPage() {
                         type="button"
                         onClick={() => setEditingProject(p)}
                         disabled={!!deleteLoading}
-                        className={cls(
-                          'text-alexandra hover:underline text-sm font-medium disabled:opacity-60'
-                        )}
+                        className={cls('text-alexandra hover:underline text-sm font-medium disabled:opacity-60')}
                       >
                         Edit
                       </button>
                       <button
                         type="button"
+                        onClick={() => setManagingProject(p)}
+                        disabled={!!deleteLoading}
+                        className={cls('text-[#34A853] hover:underline text-sm font-medium disabled:opacity-60')}
+                      >
+                        Team
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleDelete(p.id)}
                         disabled={!!deleteLoading}
-                        className={cls(
-                          'text-red-600 font-medium hover:underline disabled:opacity-60'
-                        )}
+                        className={cls('text-red-600 font-medium hover:underline disabled:opacity-60')}
                       >
                         {deleteLoading === p.id ? '...' : 'Delete'}
                       </button>
@@ -208,10 +188,7 @@ export default function AdminProjectsPage() {
         <CreateProjectModal
           token={token}
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false);
-            loadProjects();
-          }}
+          onSuccess={() => { setShowCreateModal(false); loadProjects(); }}
           onError={(msg) => setError(msg)}
         />
       )}
@@ -220,27 +197,26 @@ export default function AdminProjectsPage() {
           project={editingProject}
           token={token}
           onClose={() => setEditingProject(null)}
-          onSuccess={() => {
-            setEditingProject(null);
-            loadProjects();
-          }}
+          onSuccess={() => { setEditingProject(null); loadProjects(); }}
           onError={(msg) => setError(msg)}
+        />
+      )}
+      {managingProject && token && (
+        <TeamManagementModal
+          project={managingProject}
+          token={token}
+          onClose={() => { setManagingProject(null); loadProjects(); }}
         />
       )}
     </div>
   );
 }
 
+/* ─── Create Project Modal ─── */
 function CreateProjectModal({
-  token,
-  onClose,
-  onSuccess,
-  onError,
+  token, onClose, onSuccess, onError,
 }: {
-  token: string;
-  onClose: () => void;
-  onSuccess: () => void;
-  onError: (msg: string) => void;
+  token: string; onClose: () => void; onSuccess: () => void; onError: (msg: string) => void;
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState('');
@@ -278,147 +254,48 @@ function CreateProjectModal({
     }
   };
 
+  const inputCls = cls('w-full px-3 py-2 border border-[#DADCE0] rounded-lg focus:outline-none focus:ring-2 focus:ring-alexandra');
+
   return (
-    <div
-      className={cls(
-        'fixed inset-0 z-50 flex items-center justify-center',
-        'bg-black/50 p-4'
-      )}
-      onClick={onClose}
-    >
-      <div
-        className={cls(
-          'bg-white rounded-xl shadow-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto',
-          'border border-[#DADCE0]'
-        )}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className={cls('text-xl font-semibold text-blackout mb-4')}>
-          Create community project
-        </h2>
+    <div className={cls('fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4')} onClick={onClose}>
+      <div className={cls('bg-white rounded-xl shadow-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto border border-[#DADCE0]')} onClick={(e) => e.stopPropagation()}>
+        <h2 className={cls('text-xl font-semibold text-blackout mb-4')}>Create community project</h2>
         <form onSubmit={handleSubmit} className={cls('space-y-4')}>
           <div>
             <label className={cls('block text-sm font-medium text-blackout mb-1')}>Title *</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              className={cls(
-                'w-full px-3 py-2 border border-[#DADCE0] rounded-lg',
-                'focus:outline-none focus:ring-2 focus:ring-alexandra'
-              )}
-            />
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required className={inputCls} />
           </div>
           <div>
-            <label className={cls('block text-sm font-medium text-blackout mb-1')}>
-              Description *
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-              rows={4}
-              className={cls(
-                'w-full px-3 py-2 border border-[#DADCE0] rounded-lg',
-                'focus:outline-none focus:ring-2 focus:ring-alexandra'
-              )}
-            />
+            <label className={cls('block text-sm font-medium text-blackout mb-1')}>Description *</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} required rows={4} className={inputCls} />
           </div>
           <div>
             <label className={cls('block text-sm font-medium text-blackout mb-1')}>Duration</label>
-            <input
-              type="text"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              placeholder="e.g. 3 months"
-              className={cls(
-                'w-full px-3 py-2 border border-[#DADCE0] rounded-lg',
-                'focus:outline-none focus:ring-2 focus:ring-alexandra'
-              )}
-            />
+            <input type="text" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="e.g. 3 months" className={inputCls} />
           </div>
           <div className={cls('grid grid-cols-2 gap-4')}>
             <div>
-              <label className={cls('block text-sm font-medium text-blackout mb-1')}>
-                Start date
-              </label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className={cls(
-                  'w-full px-3 py-2 border border-[#DADCE0] rounded-lg',
-                  'focus:outline-none focus:ring-2 focus:ring-alexandra'
-                )}
-              />
+              <label className={cls('block text-sm font-medium text-blackout mb-1')}>Start date</label>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className={cls('block text-sm font-medium text-blackout mb-1')}>
-                End date
-              </label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className={cls(
-                  'w-full px-3 py-2 border border-[#DADCE0] rounded-lg',
-                  'focus:outline-none focus:ring-2 focus:ring-alexandra'
-                )}
-              />
+              <label className={cls('block text-sm font-medium text-blackout mb-1')}>End date</label>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputCls} />
             </div>
           </div>
           <div>
-            <label className={cls('block text-sm font-medium text-blackout mb-1')}>
-              GitHub repo URL
-            </label>
-            <input
-              type="url"
-              value={githubRepo}
-              onChange={(e) => setGithubRepo(e.target.value)}
-              placeholder="https://github.com/..."
-              className={cls(
-                'w-full px-3 py-2 border border-[#DADCE0] rounded-lg',
-                'focus:outline-none focus:ring-2 focus:ring-alexandra'
-              )}
-            />
+            <label className={cls('block text-sm font-medium text-blackout mb-1')}>GitHub repo URL</label>
+            <input type="url" value={githubRepo} onChange={(e) => setGithubRepo(e.target.value)} placeholder="https://github.com/..." className={inputCls} />
           </div>
           <div>
-            <label className={cls('block text-sm font-medium text-blackout mb-1')}>
-              Demo video URL
-            </label>
-            <input
-              type="url"
-              value={demoVideoUrl}
-              onChange={(e) => setDemoVideoUrl(e.target.value)}
-              placeholder="https://..."
-              className={cls(
-                'w-full px-3 py-2 border border-[#DADCE0] rounded-lg',
-                'focus:outline-none focus:ring-2 focus:ring-alexandra'
-              )}
-            />
+            <label className={cls('block text-sm font-medium text-blackout mb-1')}>Demo video URL</label>
+            <input type="url" value={demoVideoUrl} onChange={(e) => setDemoVideoUrl(e.target.value)} placeholder="https://..." className={inputCls} />
           </div>
           <div className={cls('flex gap-2 pt-2')}>
-            <button
-              type="submit"
-              disabled={submitting}
-              className={cls(
-                'px-4 py-2 bg-alexandra text-white font-medium rounded-lg',
-                'hover:bg-[#357AE8] disabled:opacity-60'
-              )}
-            >
+            <button type="submit" disabled={submitting} className={cls('px-4 py-2 bg-alexandra text-white font-medium rounded-lg hover:bg-[#357AE8] disabled:opacity-60')}>
               {submitting ? 'Creating...' : 'Create'}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className={cls(
-                'px-4 py-2 border border-[#DADCE0] rounded-lg font-medium',
-                'hover:bg-tech-white'
-              )}
-            >
-              Cancel
-            </button>
+            <button type="button" onClick={onClose} className={cls('px-4 py-2 border border-[#DADCE0] rounded-lg font-medium hover:bg-tech-white')}>Cancel</button>
           </div>
         </form>
       </div>
@@ -426,18 +303,11 @@ function CreateProjectModal({
   );
 }
 
+/* ─── Edit Project Modal ─── */
 function EditProjectModal({
-  project,
-  token,
-  onClose,
-  onSuccess,
-  onError,
+  project, token, onClose, onSuccess, onError,
 }: {
-  project: Project;
-  token: string;
-  onClose: () => void;
-  onSuccess: () => void;
-  onError: (msg: string) => void;
+  project: Project; token: string; onClose: () => void; onSuccess: () => void; onError: (msg: string) => void;
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState(project.title);
@@ -447,7 +317,7 @@ function EditProjectModal({
   const [endDate, setEndDate] = useState(project.end_date ?? '');
   const [githubRepo, setGithubRepo] = useState(project.github_repo ?? '');
   const [demoVideoUrl, setDemoVideoUrl] = useState(project.demo_video_url ?? '');
-  const [status, setStatus] = useState<'ongoing' | 'completed'>(project.status as 'ongoing' | 'completed');
+  const [status, setStatus] = useState<'ongoing' | 'completed'>(project.status);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -477,163 +347,296 @@ function EditProjectModal({
     }
   };
 
+  const inputCls = cls('w-full px-3 py-2 border border-[#DADCE0] rounded-lg focus:outline-none focus:ring-2 focus:ring-alexandra');
+
   return (
-    <div
-      className={cls(
-        'fixed inset-0 z-50 flex items-center justify-center',
-        'bg-black/50 p-4'
-      )}
-      onClick={onClose}
-    >
-      <div
-        className={cls(
-          'bg-white rounded-xl shadow-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto',
-          'border border-[#DADCE0]'
-        )}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className={cls('text-xl font-semibold text-blackout mb-4')}>
-          Edit project
-        </h2>
+    <div className={cls('fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4')} onClick={onClose}>
+      <div className={cls('bg-white rounded-xl shadow-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto border border-[#DADCE0]')} onClick={(e) => e.stopPropagation()}>
+        <h2 className={cls('text-xl font-semibold text-blackout mb-4')}>Edit project</h2>
         <form onSubmit={handleSubmit} className={cls('space-y-4')}>
           <div>
             <label className={cls('block text-sm font-medium text-blackout mb-1')}>Title *</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              className={cls(
-                'w-full px-3 py-2 border border-[#DADCE0] rounded-lg',
-                'focus:outline-none focus:ring-2 focus:ring-alexandra'
-              )}
-            />
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required className={inputCls} />
           </div>
           <div>
-            <label className={cls('block text-sm font-medium text-blackout mb-1')}>
-              Description *
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-              rows={4}
-              className={cls(
-                'w-full px-3 py-2 border border-[#DADCE0] rounded-lg',
-                'focus:outline-none focus:ring-2 focus:ring-alexandra'
-              )}
-            />
+            <label className={cls('block text-sm font-medium text-blackout mb-1')}>Description *</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} required rows={4} className={inputCls} />
           </div>
           <div>
             <label className={cls('block text-sm font-medium text-blackout mb-1')}>Status</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as 'ongoing' | 'completed')}
-              className={cls(
-                'w-full px-3 py-2 border border-[#DADCE0] rounded-lg',
-                'focus:outline-none focus:ring-2 focus:ring-alexandra'
-              )}
-            >
+            <select value={status} onChange={(e) => setStatus(e.target.value as 'ongoing' | 'completed')} className={inputCls}>
               <option value="ongoing">Ongoing</option>
               <option value="completed">Completed</option>
             </select>
           </div>
           <div>
             <label className={cls('block text-sm font-medium text-blackout mb-1')}>Duration</label>
-            <input
-              type="text"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              placeholder="e.g. 3 months"
-              className={cls(
-                'w-full px-3 py-2 border border-[#DADCE0] rounded-lg',
-                'focus:outline-none focus:ring-2 focus:ring-alexandra'
-              )}
-            />
+            <input type="text" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="e.g. 3 months" className={inputCls} />
           </div>
           <div className={cls('grid grid-cols-2 gap-4')}>
             <div>
-              <label className={cls('block text-sm font-medium text-blackout mb-1')}>
-                Start date
-              </label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className={cls(
-                  'w-full px-3 py-2 border border-[#DADCE0] rounded-lg',
-                  'focus:outline-none focus:ring-2 focus:ring-alexandra'
-                )}
-              />
+              <label className={cls('block text-sm font-medium text-blackout mb-1')}>Start date</label>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className={cls('block text-sm font-medium text-blackout mb-1')}>
-                End date
-              </label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className={cls(
-                  'w-full px-3 py-2 border border-[#DADCE0] rounded-lg',
-                  'focus:outline-none focus:ring-2 focus:ring-alexandra'
-                )}
-              />
+              <label className={cls('block text-sm font-medium text-blackout mb-1')}>End date</label>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputCls} />
             </div>
           </div>
           <div>
-            <label className={cls('block text-sm font-medium text-blackout mb-1')}>
-              GitHub repo URL
-            </label>
-            <input
-              type="url"
-              value={githubRepo}
-              onChange={(e) => setGithubRepo(e.target.value)}
-              placeholder="https://github.com/..."
-              className={cls(
-                'w-full px-3 py-2 border border-[#DADCE0] rounded-lg',
-                'focus:outline-none focus:ring-2 focus:ring-alexandra'
-              )}
-            />
+            <label className={cls('block text-sm font-medium text-blackout mb-1')}>GitHub repo URL</label>
+            <input type="url" value={githubRepo} onChange={(e) => setGithubRepo(e.target.value)} placeholder="https://github.com/..." className={inputCls} />
           </div>
           <div>
-            <label className={cls('block text-sm font-medium text-blackout mb-1')}>
-              Demo video URL
-            </label>
-            <input
-              type="url"
-              value={demoVideoUrl}
-              onChange={(e) => setDemoVideoUrl(e.target.value)}
-              placeholder="https://..."
-              className={cls(
-                'w-full px-3 py-2 border border-[#DADCE0] rounded-lg',
-                'focus:outline-none focus:ring-2 focus:ring-alexandra'
-              )}
-            />
+            <label className={cls('block text-sm font-medium text-blackout mb-1')}>Demo video URL</label>
+            <input type="url" value={demoVideoUrl} onChange={(e) => setDemoVideoUrl(e.target.value)} placeholder="https://..." className={inputCls} />
           </div>
           <div className={cls('flex gap-2 pt-2')}>
-            <button
-              type="submit"
-              disabled={submitting}
-              className={cls(
-                'px-4 py-2 bg-alexandra text-white font-medium rounded-lg',
-                'hover:bg-[#357AE8] disabled:opacity-60'
-              )}
-            >
+            <button type="submit" disabled={submitting} className={cls('px-4 py-2 bg-alexandra text-white font-medium rounded-lg hover:bg-[#357AE8] disabled:opacity-60')}>
               {submitting ? 'Saving...' : 'Save'}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className={cls(
-                'px-4 py-2 border border-[#DADCE0] rounded-lg font-medium',
-                'hover:bg-tech-white'
-              )}
-            >
-              Cancel
-            </button>
+            <button type="button" onClick={onClose} className={cls('px-4 py-2 border border-[#DADCE0] rounded-lg font-medium hover:bg-tech-white')}>Cancel</button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Team (Contributors + Applications) Management Modal ─── */
+function TeamManagementModal({
+  project, token, onClose,
+}: {
+  project: Project; token: string; onClose: () => void;
+}) {
+  const [contributors, setContributors] = useState<ProjectContributor[]>([]);
+  const [applications, setApplications] = useState<ProjectApplication[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Add contributor form
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addUserId, setAddUserId] = useState('');
+  const [addRole, setAddRole] = useState('');
+  const [addLoading, setAddLoading] = useState(false);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [contribs, apps, userList] = await Promise.all([
+        api.getProjectContributors(project.id).catch(() => []),
+        api.getProjectApplications(project.id, token).catch(() => []),
+        api.getUsers(token).catch(() => []),
+      ]);
+      setContributors(contribs);
+      setApplications(apps.filter((a: ProjectApplication) => !a.is_contributor));
+      setUsers(userList);
+    } catch {
+      setError('Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleRemoveContributor = async (userId: string) => {
+    if (!confirm('Remove this contributor?')) return;
+    setActionLoading(userId);
+    try {
+      await api.removeContributor(project.id, userId, token);
+      setContributors((prev) => prev.filter((c) => c.user_id !== userId));
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Failed to remove');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleApprove = async (appId: string) => {
+    setActionLoading(appId);
+    try {
+      await api.approveApplication(project.id, appId, token);
+      await loadData();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Failed to approve');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleReject = async (appId: string) => {
+    if (!confirm('Reject this application?')) return;
+    setActionLoading(appId);
+    try {
+      await api.rejectApplication(project.id, appId, token);
+      setApplications((prev) => prev.filter((a) => a.id !== appId));
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Failed to reject');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleAddContributor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addUserId || !addRole.trim()) return;
+    setAddLoading(true);
+    setError(null);
+    try {
+      const c = await api.addContributor(project.id, { user_id: addUserId, role: addRole.trim() }, token);
+      setContributors((prev) => [...prev, c]);
+      setAddUserId('');
+      setAddRole('');
+      setShowAddForm(false);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Failed to add contributor');
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
+  const getUserName = (userId: string) => {
+    const u = users.find((u) => u.id === userId);
+    return u?.full_name ?? u?.email ?? userId.slice(0, 8);
+  };
+
+  return (
+    <div className={cls('fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4')} onClick={onClose}>
+      <div
+        className={cls('bg-white rounded-xl shadow-lg max-w-lg w-full p-6 border border-[#DADCE0] max-h-[90vh] overflow-y-auto')}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={cls('flex items-center justify-between mb-4')}>
+          <h2 className={cls('text-xl font-semibold text-blackout')}>
+            Team &mdash; {project.title}
+          </h2>
+          <button type="button" onClick={onClose} className={cls('text-solid-matte-gray hover:text-blackout text-xl leading-none')}>&times;</button>
+        </div>
+
+        {error && (
+          <div className={cls('rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-red-700 text-sm mb-4')}>
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <p className={cls('text-sm text-solid-matte-gray')}>Loading...</p>
+        ) : (
+          <>
+            {/* Contributors section */}
+            <div className={cls('mb-6')}>
+              <h3 className={cls('font-medium text-blackout mb-3')}>Contributors ({contributors.length})</h3>
+              {contributors.length === 0 ? (
+                <p className={cls('text-sm text-solid-matte-gray mb-3')}>No contributors yet.</p>
+              ) : (
+                <ul className={cls('space-y-2 mb-3')}>
+                  {contributors.map((c) => (
+                    <li key={c.id} className={cls('flex items-center justify-between p-3 rounded-lg border border-[#DADCE0] bg-tech-white')}>
+                      <div>
+                        <p className={cls('font-medium text-blackout text-sm')}>{c.user?.full_name ?? c.user?.email ?? 'Unknown'}</p>
+                        <p className={cls('text-xs text-solid-matte-gray')}>{c.role}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveContributor(c.user_id)}
+                        disabled={actionLoading === c.user_id}
+                        className={cls('text-red-600 hover:underline text-sm font-medium disabled:opacity-60')}
+                      >
+                        {actionLoading === c.user_id ? '...' : 'Remove'}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {showAddForm ? (
+                <form onSubmit={handleAddContributor} className={cls('space-y-3 p-3 rounded-lg border border-[#DADCE0]')}>
+                  <select
+                    value={addUserId}
+                    onChange={(e) => setAddUserId(e.target.value)}
+                    required
+                    className={cls('w-full px-3 py-2 border border-[#DADCE0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-alexandra')}
+                  >
+                    <option value="">Select user...</option>
+                    {users
+                      .filter((u) => !contributors.some((c) => c.user_id === u.id))
+                      .map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.full_name ?? u.email}
+                        </option>
+                      ))}
+                  </select>
+                  <input
+                    type="text"
+                    value={addRole}
+                    onChange={(e) => setAddRole(e.target.value)}
+                    placeholder="Role (e.g. Frontend Developer)"
+                    required
+                    className={cls('w-full px-3 py-2 border border-[#DADCE0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-alexandra')}
+                  />
+                  <div className={cls('flex gap-2')}>
+                    <button type="submit" disabled={addLoading} className={cls('px-4 py-2 bg-alexandra text-white font-medium rounded-lg text-sm hover:bg-[#357AE8] disabled:opacity-60')}>
+                      {addLoading ? 'Adding...' : 'Add'}
+                    </button>
+                    <button type="button" onClick={() => setShowAddForm(false)} className={cls('px-4 py-2 border border-[#DADCE0] rounded-lg text-sm font-medium hover:bg-tech-white')}>
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(true)}
+                  className={cls('px-4 py-2 bg-[#34A853] text-white font-medium rounded-lg text-sm hover:bg-[#2d9249] transition-colors')}
+                >
+                  + Add contributor
+                </button>
+              )}
+            </div>
+
+            {/* Applications section */}
+            <div className={cls('border-t border-[#DADCE0] pt-4')}>
+              <h3 className={cls('font-medium text-blackout mb-3')}>Pending applications ({applications.length})</h3>
+              {applications.length === 0 ? (
+                <p className={cls('text-sm text-solid-matte-gray')}>No pending applications.</p>
+              ) : (
+                <ul className={cls('space-y-2')}>
+                  {applications.map((app) => (
+                    <li key={app.id} className={cls('flex items-center justify-between p-3 rounded-lg border border-[#DADCE0] bg-tech-white')}>
+                      <div>
+                        <p className={cls('font-medium text-blackout text-sm')}>{getUserName(app.user_id)}</p>
+                        <p className={cls('text-xs text-solid-matte-gray')}>Wants to be: {app.role}</p>
+                      </div>
+                      <div className={cls('flex gap-2')}>
+                        <button
+                          type="button"
+                          onClick={() => handleApprove(app.id)}
+                          disabled={!!actionLoading}
+                          className={cls('text-[#34A853] hover:underline text-sm font-medium disabled:opacity-60')}
+                        >
+                          {actionLoading === app.id ? '...' : 'Approve'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleReject(app.id)}
+                          disabled={!!actionLoading}
+                          className={cls('text-red-600 hover:underline text-sm font-medium disabled:opacity-60')}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

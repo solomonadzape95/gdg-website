@@ -1,19 +1,26 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 import { api, ApiError } from '@/lib/api';
-import type { Project } from '@/lib/api';
+import type { Project, ProjectApplication } from '@/lib/api';
 import { cls } from '@/utils';
 
 export default function ProjectDetailPage() {
   const params = useParams();
-  const router = useRouter();
+  const { user, token } = useAuth();
   const id = params.id as string;
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [showApplyForm, setShowApplyForm] = useState(false);
+  const [applyRole, setApplyRole] = useState('');
+  const [applyLoading, setApplyLoading] = useState(false);
+  const [applied, setApplied] = useState(false);
+  const [myApplication, setMyApplication] = useState<ProjectApplication | null>(null);
 
   useEffect(() => {
     api
@@ -22,6 +29,37 @@ export default function ProjectDetailPage() {
       .catch((e) => setError(e instanceof ApiError ? e.message : 'Failed to load project'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (!token) return;
+    api
+      .getMyApplications(token)
+      .then((apps) => {
+        const match = apps.find((a) => a.project_id === id);
+        if (match) {
+          setMyApplication(match);
+          setApplied(true);
+        }
+      })
+      .catch(() => {});
+  }, [id, token]);
+
+  const handleApply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !applyRole.trim()) return;
+    setApplyLoading(true);
+    setError(null);
+    try {
+      const app = await api.applyToProject(id, { role: applyRole.trim() }, token);
+      setMyApplication(app);
+      setApplied(true);
+      setShowApplyForm(false);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Application failed');
+    } finally {
+      setApplyLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -45,7 +83,9 @@ export default function ProjectDetailPage() {
     );
   }
 
-  const projectWithContributors = project as Project & { creator?: { full_name?: string }; contributors?: Array<{ user?: { full_name?: string }; role?: string }> };
+  const isOwner = user?.id === project.creator_id;
+  const isContributor = project.contributors?.some((c) => c.user_id === user?.id) ?? false;
+  const canApply = token && !isOwner && !isContributor && !applied && project.status === 'ongoing';
 
   return (
     <div className={cls('space-y-6')}>
@@ -53,7 +93,7 @@ export default function ProjectDetailPage() {
         href="/dashboard/projects"
         className={cls('text-sm text-alexandra hover:underline')}
       >
-        ← Back to projects
+        &larr; Back to projects
       </Link>
       <section
         className={cls(
@@ -89,9 +129,9 @@ export default function ProjectDetailPage() {
             </span>
           </div>
         </div>
-        {projectWithContributors.creator && (
+        {project.creator && (
           <p className={cls('text-sm text-solid-matte-gray mb-4')}>
-            By {(projectWithContributors.creator as { full_name?: string }).full_name ?? 'Unknown'}
+            By {project.creator.full_name ?? 'Unknown'}
           </p>
         )}
         <p className={cls('text-solid-matte-gray whitespace-pre-wrap mb-6')}>
@@ -114,44 +154,118 @@ export default function ProjectDetailPage() {
             </span>
           )}
         </div>
-        {project.github_repo && (
-          <a
-            href={project.github_repo}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cls(
-              'inline-block mt-4 text-alexandra hover:underline font-medium'
-            )}
-          >
-            View on GitHub →
-          </a>
-        )}
-        {project.demo_video_url && (
-          <a
-            href={project.demo_video_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cls(
-              'inline-block mt-2 text-alexandra hover:underline font-medium'
-            )}
-          >
-            Watch demo →
-          </a>
-        )}
-        {projectWithContributors.contributors &&
-          projectWithContributors.contributors.length > 0 && (
-            <div className={cls('mt-6 pt-6 border-t border-[#DADCE0]')}>
-              <h2 className={cls('font-semibold text-blackout mb-2')}>Contributors</h2>
-              <ul className={cls('space-y-1')}>
-                {projectWithContributors.contributors.map((c: { user?: { full_name?: string }; role?: string }, i: number) => (
-                  <li key={i} className={cls('text-sm text-solid-matte-gray')}>
-                    {(c.user as { full_name?: string })?.full_name ?? 'Unknown'} — {c.role ?? 'Contributor'}
-                  </li>
-                ))}
-              </ul>
-            </div>
+        <div className={cls('flex flex-wrap gap-4 mt-4')}>
+          {project.github_repo && (
+            <a
+              href={project.github_repo}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cls('text-alexandra hover:underline font-medium')}
+            >
+              View on GitHub &rarr;
+            </a>
           )}
+          {project.demo_video_url && (
+            <a
+              href={project.demo_video_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cls('text-alexandra hover:underline font-medium')}
+            >
+              Watch demo &rarr;
+            </a>
+          )}
+        </div>
+
+        {/* Apply section */}
+        {canApply && !showApplyForm && (
+          <div className={cls('mt-6 pt-6 border-t border-[#DADCE0]')}>
+            <button
+              type="button"
+              onClick={() => setShowApplyForm(true)}
+              className={cls(
+                'px-5 py-2.5 bg-alexandra text-white font-medium rounded-lg text-sm',
+                'hover:bg-[#357AE8] transition-colors'
+              )}
+            >
+              Apply to contribute
+            </button>
+          </div>
+        )}
+
+        {showApplyForm && (
+          <form onSubmit={handleApply} className={cls('mt-6 pt-6 border-t border-[#DADCE0] space-y-3')}>
+            <h3 className={cls('font-medium text-blackout')}>Apply to contribute</h3>
+            <input
+              type="text"
+              value={applyRole}
+              onChange={(e) => setApplyRole(e.target.value)}
+              placeholder="Your desired role (e.g. Frontend Developer)"
+              required
+              className={cls(
+                'w-full px-3 py-2 border border-[#DADCE0] rounded-lg text-sm',
+                'focus:outline-none focus:ring-2 focus:ring-alexandra'
+              )}
+            />
+            <div className={cls('flex gap-2')}>
+              <button
+                type="submit"
+                disabled={applyLoading}
+                className={cls(
+                  'px-4 py-2 bg-alexandra text-white font-medium rounded-lg text-sm',
+                  'hover:bg-[#357AE8] disabled:opacity-60'
+                )}
+              >
+                {applyLoading ? 'Applying...' : 'Submit application'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowApplyForm(false)}
+                className={cls(
+                  'px-4 py-2 border border-[#DADCE0] rounded-lg text-sm font-medium',
+                  'hover:bg-tech-white'
+                )}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+
+        {applied && myApplication && (
+          <div className={cls('mt-6 pt-6 border-t border-[#DADCE0]')}>
+            <p className={cls('text-sm text-solid-matte-gray')}>
+              You applied as <span className={cls('font-medium text-blackout')}>{myApplication.role}</span>
+              {' — '}
+              <span className={cls(
+                myApplication.is_contributor ? 'text-green-600' : 'text-amber-600'
+              )}>
+                {myApplication.is_contributor ? 'Approved' : 'Pending review'}
+              </span>
+            </p>
+          </div>
+        )}
+
+        {/* Contributors */}
+        {project.contributors && project.contributors.length > 0 && (
+          <div className={cls('mt-6 pt-6 border-t border-[#DADCE0]')}>
+            <h2 className={cls('font-semibold text-blackout mb-2')}>Contributors</h2>
+            <ul className={cls('space-y-1')}>
+              {project.contributors.map((c) => (
+                <li key={c.id} className={cls('text-sm text-solid-matte-gray')}>
+                  {c.user?.full_name ?? 'Unknown'} &mdash; {c.role ?? 'Contributor'}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </section>
+
+      {error && (
+        <div className={cls('rounded-lg bg-red-50 border border-red-200 px-4 py-2 text-red-700')}>
+          {error}
+        </div>
+      )}
     </div>
   );
 }
