@@ -89,6 +89,7 @@ export default function ProjectsPage() {
                       View on GitHub →
                     </a>
                   )}
+                  </div>
                 </Link>
               </li>
             ))}
