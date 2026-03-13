@@ -8,7 +8,7 @@ import { cls } from '@/utils';
 const PAGE_SIZE = 20;
 
 export default function CommunityPage() {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [members, setMembers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -17,12 +17,12 @@ export default function CommunityPage() {
   const [totalLoaded, setTotalLoaded] = useState(0);
 
   useEffect(() => {
-    if (!token) return;
+    if (!user) return;
     setLoading(true);
     setError(null);
     const skip = (page - 1) * PAGE_SIZE;
     api
-      .getCommunityMembers(token, { skip, limit: PAGE_SIZE })
+      .getCommunityMembers({ skip, limit: PAGE_SIZE })
       .then((list) => {
         setMembers(list);
         setTotalLoaded(list.length);
@@ -32,7 +32,7 @@ export default function CommunityPage() {
         setMembers([]);
       })
       .finally(() => setLoading(false));
-  }, [token, page]);
+  }, [user, page]);
 
   const filteredMembers = searchQuery.trim()
     ? members.filter(

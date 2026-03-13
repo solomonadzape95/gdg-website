@@ -17,7 +17,7 @@ type RegistrationWithEvent = EventRegistration & {
 };
 
 export default function ProfilePage() {
-  const { user, token, setUser } = useAuth();
+  const { user, setUser } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -40,10 +40,10 @@ export default function ProfilePage() {
   }, [user]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!user) return;
     setActivityLoading(true);
     Promise.all([
-      api.getMyBlogposts(token, { limit: 10 }).catch(() => []),
+      api.getMyBlogposts({ limit: 10 }).catch(() => []),
       api.getProjects({ limit: 100 }).then((list) => {
         const arr = Array.isArray(list) ? list : [];
         return arr.filter((p) => {
@@ -52,7 +52,7 @@ export default function ProfilePage() {
           return proj.contributors?.some((c) => c.user_id === user?.id) ?? false;
         });
       }),
-      api.getMyRegistrations(token).catch(() => []),
+      api.getMyRegistrations().catch(() => []),
       api.getEvents({ limit: 200 }).catch(() => []),
     ])
       .then(([posts, projects, regs, events]) => {
@@ -66,23 +66,20 @@ export default function ProfilePage() {
       })
       .catch(() => {})
       .finally(() => setActivityLoading(false));
-  }, [token, user?.id]);
+  }, [user, user?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !token) return;
+    if (!user) return;
     setSaving(true);
     setError(null);
     setSuccess(false);
     try {
-      const updated = await api.updateMe(
-        {
-          full_name: fullName || null,
-          email: email || null,
-          phone: phone || null,
-        },
-        token
-      );
+      const updated = await api.updateMe({
+        full_name: fullName || null,
+        email: email || null,
+        phone: phone || null,
+      });
       setUser(updated);
       setSuccess(true);
       setIsEditing(false);

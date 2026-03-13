@@ -8,7 +8,7 @@ import type { Event, Speaker } from '@/lib/api';
 import { cls } from '@/utils';
 
 export default function AdminEventsPage() {
-  const { token } = useAuth();
+  const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,10 +35,10 @@ export default function AdminEventsPage() {
   }, []);
 
   const handleDelete = async (eventId: string) => {
-    if (!token || !confirm('Delete this event?')) return;
+    if (!user || !confirm('Delete this event?')) return;
     setActionLoading(eventId);
     try {
-      await api.deleteEvent(eventId, token);
+      await api.deleteEvent(eventId);
       loadEvents();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to delete');
@@ -85,37 +85,42 @@ export default function AdminEventsPage() {
             No events yet. Create one to get started.
           </div>
         ) : (
-          <div className={cls('overflow-x-auto')}>
-            <table className={cls('w-full text-left')}>
-              <thead>
-                <tr className={cls('bg-tech-white border-b border-[#DADCE0]')}>
-                  <th className={cls('px-4 py-3 font-medium text-blackout')}>Title</th>
-                  <th className={cls('px-4 py-3 font-medium text-blackout')}>Date</th>
-                  <th className={cls('px-4 py-3 font-medium text-blackout')}>Location</th>
-                  <th className={cls('px-4 py-3 font-medium text-blackout')}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {events.map((ev) => (
-                  <tr key={ev.id} className={cls('border-b border-[#DADCE0] hover:bg-tech-white/50')}>
-                    <td className={cls('px-4 py-3')}>
+          <ul className={cls('divide-y divide-[#DADCE0]')}>
+            {events.map((ev) => (
+              <li key={ev.id} className={cls('p-4 sm:p-5')}>
+                <div
+                  className={cls(
+                    'rounded-xl border border-[#DADCE0] bg-white p-5 shadow-sm',
+                    'transition-shadow hover:shadow-md hover:border-alexandra/50'
+                  )}
+                >
+                  <div className={cls('flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between')}>
+                    <div className={cls('min-w-0')}>
                       <Link
                         href={`/dashboard/events/${ev.id}`}
-                        className={cls('text-alexandra hover:underline font-medium')}
+                        className={cls('text-lg font-medium text-blackout hover:text-alexandra transition-colors')}
                       >
                         {ev.title}
                       </Link>
-                    </td>
-                    <td className={cls('px-4 py-3 text-sm text-solid-matte-gray')}>
-                      {formatDate(ev.date)}
-                    </td>
-                    <td className={cls('px-4 py-3 text-sm text-solid-matte-gray')}>
-                      {ev.location ?? '—'}
-                    </td>
-                    <td className={cls('px-4 py-3 flex gap-2 flex-wrap')}>
+                      <p className={cls('mt-1 text-sm text-solid-matte-gray')}>
+                        {formatDate(ev.date)}
+                        {ev.location ? ` · ${ev.location}` : ''}
+                        {Array.isArray(ev.speakers) ? ` · ${ev.speakers.length} speakers` : ''}
+                      </p>
+                      {ev.description && (
+                        <p className={cls('mt-3 text-sm text-solid-matte-gray line-clamp-2')}>
+                          {ev.description}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className={cls('flex flex-wrap items-center gap-2 sm:justify-end sm:shrink-0')}>
                       <Link
                         href={`/dashboard/events/${ev.id}`}
-                        className={cls('text-alexandra hover:underline text-sm font-medium')}
+                        className={cls(
+                          'px-3 py-2 rounded-lg text-sm font-medium',
+                          'border border-[#DADCE0] text-blackout hover:border-alexandra hover:text-alexandra transition-colors'
+                        )}
                       >
                         View
                       </Link>
@@ -124,7 +129,9 @@ export default function AdminEventsPage() {
                         onClick={() => setEditingEvent(ev)}
                         disabled={!!actionLoading}
                         className={cls(
-                          'text-alexandra hover:underline text-sm font-medium disabled:opacity-60'
+                          'px-3 py-2 rounded-lg text-sm font-medium',
+                          'border border-[#DADCE0] text-blackout hover:border-alexandra hover:text-alexandra transition-colors',
+                          'disabled:opacity-60'
                         )}
                       >
                         Edit
@@ -134,7 +141,9 @@ export default function AdminEventsPage() {
                         onClick={() => setManagingSpeakersFor(ev)}
                         disabled={!!actionLoading}
                         className={cls(
-                          'text-[#34A853] hover:underline text-sm font-medium disabled:opacity-60'
+                          'px-3 py-2 rounded-lg text-sm font-medium',
+                          'border border-[#DADCE0] text-blackout hover:border-[#34A853] hover:text-[#34A853] transition-colors',
+                          'disabled:opacity-60'
                         )}
                       >
                         Speakers
@@ -144,23 +153,24 @@ export default function AdminEventsPage() {
                         onClick={() => handleDelete(ev.id)}
                         disabled={!!actionLoading}
                         className={cls(
-                          'text-red-600 hover:underline text-sm font-medium disabled:opacity-60'
+                          'px-3 py-2 rounded-lg text-sm font-medium',
+                          'border border-red-200 text-red-600 hover:bg-red-50 transition-colors',
+                          'disabled:opacity-60'
                         )}
                       >
                         {actionLoading === ev.id ? '...' : 'Delete'}
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 
-      {showCreateModal && token && (
+      {showCreateModal && user && (
         <CreateEventModal
-          token={token}
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             setShowCreateModal(false);
@@ -169,10 +179,9 @@ export default function AdminEventsPage() {
           onError={(msg) => setError(msg)}
         />
       )}
-      {editingEvent && token && (
+      {editingEvent && user && (
         <EditEventModal
           event={editingEvent}
-          token={token}
           onClose={() => setEditingEvent(null)}
           onSuccess={() => {
             setEditingEvent(null);
@@ -181,10 +190,9 @@ export default function AdminEventsPage() {
           onError={(msg) => setError(msg)}
         />
       )}
-      {managingSpeakersFor && token && (
+      {managingSpeakersFor && user && (
         <SpeakerManagementModal
           event={managingSpeakersFor}
-          token={token}
           onClose={() => {
             setManagingSpeakersFor(null);
             loadEvents();
@@ -197,12 +205,10 @@ export default function AdminEventsPage() {
 
 /* ─── Create Event Modal ─── */
 function CreateEventModal({
-  token,
   onClose,
   onSuccess,
   onError,
 }: {
-  token: string;
   onClose: () => void;
   onSuccess: () => void;
   onError: (msg: string) => void;
@@ -222,18 +228,15 @@ function CreateEventModal({
     setSubmitting(true);
     onError('');
     try {
-      await api.createEvent(
-        {
-          title: title.trim(),
-          description: description.trim() || null,
-          date,
-          start_time: startTime,
-          end_time: endTime,
-          location: location.trim() || null,
-          image_url: imageUrl.trim() || null,
-        },
-        token
-      );
+      await api.createEvent({
+        title: title.trim(),
+        description: description.trim() || null,
+        date,
+        start_time: startTime,
+        end_time: endTime,
+        location: location.trim() || null,
+        image_url: imageUrl.trim() || null,
+      });
       onSuccess();
     } catch (e) {
       onError(e instanceof ApiError ? e.message : 'Failed to create event');
@@ -306,13 +309,11 @@ function CreateEventModal({
 /* ─── Edit Event Modal ─── */
 function EditEventModal({
   event,
-  token,
   onClose,
   onSuccess,
   onError,
 }: {
   event: Event;
-  token: string;
   onClose: () => void;
   onSuccess: () => void;
   onError: (msg: string) => void;
@@ -340,19 +341,15 @@ function EditEventModal({
     setSubmitting(true);
     onError('');
     try {
-      await api.updateEvent(
-        event.id,
-        {
-          title: title.trim(),
-          description: description.trim() || null,
-          date,
-          start_time: startTime,
-          end_time: endTime,
-          location: location.trim() || null,
-          image_url: imageUrl.trim() || null,
-        },
-        token
-      );
+      await api.updateEvent(event.id, {
+        title: title.trim(),
+        description: description.trim() || null,
+        date,
+        start_time: startTime,
+        end_time: endTime,
+        location: location.trim() || null,
+        image_url: imageUrl.trim() || null,
+      });
       onSuccess();
     } catch (e) {
       onError(e instanceof ApiError ? e.message : 'Failed to update event');
@@ -419,11 +416,9 @@ function EditEventModal({
 /* ─── Speaker Management Modal ─── */
 function SpeakerManagementModal({
   event,
-  token,
   onClose,
 }: {
   event: Event;
-  token: string;
   onClose: () => void;
 }) {
   const [speakers, setSpeakers] = useState<Speaker[]>(event.speakers ?? []);
@@ -445,17 +440,13 @@ function SpeakerManagementModal({
     setAddLoading(true);
     setError(null);
     try {
-      const speaker = await api.addSpeaker(
-        event.id,
-        {
-          name: name.trim(),
-          bio: bio.trim(),
-          topic: topic.trim() || null,
-          niche: niche.trim(),
-          image_url: imageUrl.trim() || null,
-        },
-        token
-      );
+      const speaker = await api.addSpeaker(event.id, {
+        name: name.trim(),
+        bio: bio.trim(),
+        topic: topic.trim() || null,
+        niche: niche.trim(),
+        image_url: imageUrl.trim() || null,
+      });
       setSpeakers((prev) => [...prev, speaker]);
       setName('');
       setBio('');
@@ -475,7 +466,7 @@ function SpeakerManagementModal({
     setActionLoading(speakerId);
     setError(null);
     try {
-      await api.removeSpeaker(event.id, speakerId, token);
+      await api.removeSpeaker(event.id, speakerId);
       setSpeakers((prev) => prev.filter((s) => s.id !== speakerId));
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to remove speaker');

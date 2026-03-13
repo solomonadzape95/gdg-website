@@ -25,6 +25,14 @@ const signUpSchema = z
     path: ['confirmPassword'],
   });
 
+const BACKEND_FIELD_TO_FORM: Record<string, keyof SignUpFormData> = {
+  full_name: 'fullName',
+  email: 'email',
+  password: 'password',
+  confirm_password: 'confirmPassword',
+  phone: 'phoneNumber',
+};
+
 type SignUpFormData = z.infer<typeof signUpSchema>;
 
 export const SignUpForm = () => {
@@ -36,6 +44,7 @@ export const SignUpForm = () => {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
@@ -57,6 +66,21 @@ export const SignUpForm = () => {
       router.push('/auth?mode=login');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
+      if (e instanceof ApiError && e.status === 422 && e.body && typeof e.body === 'object' && 'detail' in e.body) {
+        const detail = (e.body as { detail: Array<{ loc?: unknown[]; msg?: string }> }).detail;
+        if (Array.isArray(detail)) {
+          for (const item of detail) {
+            const loc = item.loc;
+            const backendField = Array.isArray(loc) && loc[1] && typeof loc[1] === 'string' ? loc[1] : null;
+            const formField = backendField ? BACKEND_FIELD_TO_FORM[backendField] : null;
+            const message = (item.msg ?? '').replace(/^Value error,?\s*/i, '');
+            if (formField && message) {
+              setError(formField, { type: 'server', message });
+            }
+          }
+          return;
+        }
+      }
       setSubmitError(e instanceof ApiError ? e.message : 'Registration failed. Please try again.');
     }
   };
@@ -148,6 +172,9 @@ export const SignUpForm = () => {
               placeholder="+2348012345678 (optional)"
               className="w-full px-4 py-3 border border-[#DADCE0] rounded-none focus:outline-none focus:ring-2 focus:ring-alexandra focus:border-transparent text-blackout bg-white placeholder:text-[#9AA0A6]"
             />
+            {errors.phoneNumber && (
+              <p className="mt-1 text-sm text-red-500">{errors.phoneNumber.message}</p>
+            )}
           </div>
 
           {/* Password Fields */}

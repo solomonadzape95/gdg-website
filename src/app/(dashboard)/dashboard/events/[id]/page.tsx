@@ -10,7 +10,7 @@ import { cls } from '@/utils';
 
 export default function EventDetailPage() {
   const params = useParams();
-  const { token } = useAuth();
+  const { user } = useAuth();
   const id = params.id as string;
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,26 +28,26 @@ export default function EventDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    if (!token) {
+    if (!user) {
       setRegChecking(false);
       return;
     }
     api
-      .getRegistrationStatus(id, token)
+      .getRegistrationStatus(id)
       .then((res) => setRegistered(res.registered))
       .catch(() => {})
       .finally(() => setRegChecking(false));
-  }, [id, token]);
+  }, [id, user]);
 
   const handleRegister = async () => {
-    if (!token) return;
+    if (!user) return;
     setRegLoading(true);
     try {
       if (registered) {
-        await api.unregisterFromEvent(id, token);
+        await api.unregisterFromEvent(id);
         setRegistered(false);
       } else {
-        await api.registerForEvent(id, token);
+        await api.registerForEvent(id);
         setRegistered(true);
       }
     } catch (e) {
@@ -71,9 +71,12 @@ export default function EventDetailPage() {
         <p className={cls('text-red-600')}>{error ?? 'Event not found'}</p>
         <Link
           href="/dashboard/events"
-          className={cls('text-alexandra hover:underline')}
+          className={cls(
+            'inline-flex items-center gap-2 rounded-lg border border-[#DADCE0] px-4 py-2 text-sm font-medium text-blackout',
+            'hover:border-alexandra hover:text-alexandra transition-colors'
+          )}
         >
-          Back to events
+          ← Back to events
         </Link>
       </div>
     );
@@ -103,9 +106,12 @@ export default function EventDetailPage() {
     <div className={cls('space-y-6')}>
       <Link
         href="/dashboard/events"
-        className={cls('text-sm text-alexandra hover:underline')}
+        className={cls(
+          'inline-flex items-center gap-2 rounded-lg border border-[#DADCE0] px-4 py-2 text-sm font-medium text-blackout',
+          'hover:border-alexandra hover:text-alexandra transition-colors'
+        )}
       >
-        &larr; Back to events
+        ← Back to events
       </Link>
       <section
         className={cls(
@@ -117,7 +123,7 @@ export default function EventDetailPage() {
           <h1 className={cls('text-2xl md:text-3xl font-medium text-blackout')}>
             {event.title}
           </h1>
-          {token && !regChecking && (
+          {user && !regChecking && (
             <button
               type="button"
               onClick={handleRegister}

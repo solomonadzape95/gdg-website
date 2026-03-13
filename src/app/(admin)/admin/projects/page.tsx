@@ -8,7 +8,7 @@ import type { Project, ProjectContributor, ProjectApplication, User } from '@/li
 import { cls } from '@/utils';
 
 export default function AdminProjectsPage() {
-  const { token } = useAuth();
+  const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,11 +39,11 @@ export default function AdminProjectsPage() {
   }, [statusFilter]);
 
   const handleDelete = async (id: string) => {
-    if (!token) return;
+    if (!user) return;
     if (!confirm('Are you sure you want to delete this project?')) return;
     setDeleteLoading(id);
     try {
-      await api.deleteProject(id, token);
+      await api.deleteProject(id);
       loadProjects();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to delete');
@@ -105,49 +105,61 @@ export default function AdminProjectsPage() {
         ) : projects.length === 0 ? (
           <div className={cls('p-8 text-center text-solid-matte-gray')}>No projects found.</div>
         ) : (
-          <div className={cls('overflow-x-auto')}>
-            <table className={cls('w-full text-left')}>
-              <thead>
-                <tr className={cls('bg-tech-white border-b border-[#DADCE0]')}>
-                  <th className={cls('px-4 py-3 font-medium text-blackout')}>Title</th>
-                  <th className={cls('px-4 py-3 font-medium text-blackout')}>Type</th>
-                  <th className={cls('px-4 py-3 font-medium text-blackout')}>Status</th>
-                  <th className={cls('px-4 py-3 font-medium text-blackout')}>Created</th>
-                  <th className={cls('px-4 py-3 font-medium text-blackout')}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {projects.map((p) => (
-                  <tr key={p.id} className={cls('border-b border-[#DADCE0] hover:bg-tech-white/50')}>
-                    <td className={cls('px-4 py-3')}>
+          <ul className={cls('divide-y divide-[#DADCE0]')}>
+            {projects.map((p) => (
+              <li key={p.id} className={cls('p-4 sm:p-5')}>
+                <div
+                  className={cls(
+                    'rounded-xl border border-[#DADCE0] bg-white p-5 shadow-sm',
+                    'transition-shadow hover:shadow-md hover:border-alexandra/50'
+                  )}
+                >
+                  <div className={cls('flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between')}>
+                    <div className={cls('min-w-0')}>
+                      <div className={cls('flex flex-wrap items-center gap-2 mb-2')}>
+                        <span
+                          className={cls(
+                            'text-xs px-2 py-0.5 rounded-sm uppercase',
+                            p.project_type === 'community' && 'bg-[#34A853]/20 text-[#34A853]',
+                            p.project_type === 'personal' && 'bg-alexandra/20 text-alexandra'
+                          )}
+                        >
+                          {p.project_type}
+                        </span>
+                        <span
+                          className={cls(
+                            'text-xs px-2 py-0.5 rounded-sm uppercase',
+                            p.status === 'ongoing' && 'bg-alexandra/20 text-alexandra',
+                            p.status === 'completed' && 'bg-green-100 text-green-800'
+                          )}
+                        >
+                          {p.status}
+                        </span>
+                        <span className={cls('text-xs text-solid-matte-gray')}>
+                          Created {formatDate(p.created_at)}
+                        </span>
+                      </div>
+
                       <Link
                         href={`/dashboard/projects/${p.id}`}
-                        className={cls('text-alexandra hover:underline font-medium')}
+                        className={cls('text-lg font-medium text-blackout hover:text-alexandra transition-colors')}
                       >
                         {p.title}
                       </Link>
-                    </td>
-                    <td className={cls('px-4 py-3 text-sm text-solid-matte-gray')}>
-                      {p.project_type}
-                    </td>
-                    <td className={cls('px-4 py-3')}>
-                      <span
-                        className={cls(
-                          'text-xs px-2 py-0.5 rounded-sm uppercase',
-                          p.status === 'ongoing' && 'bg-alexandra/20 text-alexandra',
-                          p.status === 'completed' && 'bg-green-100 text-green-800'
-                        )}
-                      >
-                        {p.status}
-                      </span>
-                    </td>
-                    <td className={cls('px-4 py-3 text-sm text-solid-matte-gray')}>
-                      {formatDate(p.created_at)}
-                    </td>
-                    <td className={cls('px-4 py-3 flex gap-2 flex-wrap')}>
+                      {p.description && (
+                        <p className={cls('mt-3 text-sm text-solid-matte-gray line-clamp-2')}>
+                          {p.description}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className={cls('flex flex-wrap items-center gap-2 sm:justify-end sm:shrink-0')}>
                       <Link
                         href={`/dashboard/projects/${p.id}`}
-                        className={cls('text-alexandra hover:underline text-sm font-medium')}
+                        className={cls(
+                          'px-3 py-2 rounded-lg text-sm font-medium',
+                          'border border-[#DADCE0] text-blackout hover:border-alexandra hover:text-alexandra transition-colors'
+                        )}
                       >
                         View
                       </Link>
@@ -155,7 +167,11 @@ export default function AdminProjectsPage() {
                         type="button"
                         onClick={() => setEditingProject(p)}
                         disabled={!!deleteLoading}
-                        className={cls('text-alexandra hover:underline text-sm font-medium disabled:opacity-60')}
+                        className={cls(
+                          'px-3 py-2 rounded-lg text-sm font-medium',
+                          'border border-[#DADCE0] text-blackout hover:border-alexandra hover:text-alexandra transition-colors',
+                          'disabled:opacity-60'
+                        )}
                       >
                         Edit
                       </button>
@@ -163,7 +179,11 @@ export default function AdminProjectsPage() {
                         type="button"
                         onClick={() => setManagingProject(p)}
                         disabled={!!deleteLoading}
-                        className={cls('text-[#34A853] hover:underline text-sm font-medium disabled:opacity-60')}
+                        className={cls(
+                          'px-3 py-2 rounded-lg text-sm font-medium',
+                          'border border-[#DADCE0] text-blackout hover:border-[#34A853] hover:text-[#34A853] transition-colors',
+                          'disabled:opacity-60'
+                        )}
                       >
                         Team
                       </button>
@@ -171,40 +191,41 @@ export default function AdminProjectsPage() {
                         type="button"
                         onClick={() => handleDelete(p.id)}
                         disabled={!!deleteLoading}
-                        className={cls('text-red-600 font-medium hover:underline disabled:opacity-60')}
+                        className={cls(
+                          'px-3 py-2 rounded-lg text-sm font-medium',
+                          'border border-red-200 text-red-600 hover:bg-red-50 transition-colors',
+                          'disabled:opacity-60'
+                        )}
                       >
                         {deleteLoading === p.id ? '...' : 'Delete'}
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 
-      {showCreateModal && token && (
+      {showCreateModal && user && (
         <CreateProjectModal
-          token={token}
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => { setShowCreateModal(false); loadProjects(); }}
           onError={(msg) => setError(msg)}
         />
       )}
-      {editingProject && token && (
+      {editingProject && user && (
         <EditProjectModal
           project={editingProject}
-          token={token}
           onClose={() => setEditingProject(null)}
           onSuccess={() => { setEditingProject(null); loadProjects(); }}
           onError={(msg) => setError(msg)}
         />
       )}
-      {managingProject && token && (
+      {managingProject && user && (
         <TeamManagementModal
           project={managingProject}
-          token={token}
           onClose={() => { setManagingProject(null); loadProjects(); }}
         />
       )}
@@ -214,9 +235,11 @@ export default function AdminProjectsPage() {
 
 /* ─── Create Project Modal ─── */
 function CreateProjectModal({
-  token, onClose, onSuccess, onError,
+  onClose, onSuccess, onError,
 }: {
-  token: string; onClose: () => void; onSuccess: () => void; onError: (msg: string) => void;
+  onClose: () => void;
+  onSuccess: () => void;
+  onError: (msg: string) => void;
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState('');
@@ -233,19 +256,16 @@ function CreateProjectModal({
     setSubmitting(true);
     onError('');
     try {
-      await api.createProject(
-        {
-          project_type: 'community',
-          title: title.trim(),
-          description: description.trim(),
-          duration: duration.trim() || null,
-          start_date: startDate || null,
-          end_date: endDate || null,
-          github_repo: githubRepo.trim() || null,
-          demo_video_url: demoVideoUrl.trim() || null,
-        },
-        token
-      );
+      await api.createProject({
+        project_type: 'community',
+        title: title.trim(),
+        description: description.trim(),
+        duration: duration.trim() || null,
+        start_date: startDate || null,
+        end_date: endDate || null,
+        github_repo: githubRepo.trim() || null,
+        demo_video_url: demoVideoUrl.trim() || null,
+      });
       onSuccess();
     } catch (e) {
       onError(e instanceof ApiError ? e.message : 'Failed to create project');
@@ -305,9 +325,9 @@ function CreateProjectModal({
 
 /* ─── Edit Project Modal ─── */
 function EditProjectModal({
-  project, token, onClose, onSuccess, onError,
+  project, onClose, onSuccess, onError,
 }: {
-  project: Project; token: string; onClose: () => void; onSuccess: () => void; onError: (msg: string) => void;
+  project: Project; onClose: () => void; onSuccess: () => void; onError: (msg: string) => void;
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState(project.title);
@@ -325,20 +345,16 @@ function EditProjectModal({
     setSubmitting(true);
     onError('');
     try {
-      await api.updateProject(
-        project.id,
-        {
-          title: title.trim(),
-          description: description.trim(),
-          duration: duration.trim() || null,
-          start_date: startDate || null,
-          end_date: endDate || null,
-          github_repo: githubRepo.trim() || null,
-          demo_video_url: demoVideoUrl.trim() || null,
-          status,
-        },
-        token
-      );
+      await api.updateProject(project.id, {
+        title: title.trim(),
+        description: description.trim(),
+        duration: duration.trim() || null,
+        start_date: startDate || null,
+        end_date: endDate || null,
+        github_repo: githubRepo.trim() || null,
+        demo_video_url: demoVideoUrl.trim() || null,
+        status,
+      });
       onSuccess();
     } catch (e) {
       onError(e instanceof ApiError ? e.message : 'Failed to update project');
@@ -405,9 +421,9 @@ function EditProjectModal({
 
 /* ─── Team (Contributors + Applications) Management Modal ─── */
 function TeamManagementModal({
-  project, token, onClose,
+  project, onClose,
 }: {
-  project: Project; token: string; onClose: () => void;
+  project: Project; onClose: () => void;
 }) {
   const [contributors, setContributors] = useState<ProjectContributor[]>([]);
   const [applications, setApplications] = useState<ProjectApplication[]>([]);
@@ -427,8 +443,8 @@ function TeamManagementModal({
     try {
       const [contribs, apps, userList] = await Promise.all([
         api.getProjectContributors(project.id).catch(() => []),
-        api.getProjectApplications(project.id, token).catch(() => []),
-        api.getUsers(token).catch(() => []),
+        api.getProjectApplications(project.id).catch(() => []),
+        api.getUsers().catch(() => []),
       ]);
       setContributors(contribs);
       setApplications(apps.filter((a: ProjectApplication) => !a.is_contributor));
@@ -448,7 +464,7 @@ function TeamManagementModal({
     if (!confirm('Remove this contributor?')) return;
     setActionLoading(userId);
     try {
-      await api.removeContributor(project.id, userId, token);
+      await api.removeContributor(project.id, userId);
       setContributors((prev) => prev.filter((c) => c.user_id !== userId));
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to remove');
@@ -460,7 +476,7 @@ function TeamManagementModal({
   const handleApprove = async (appId: string) => {
     setActionLoading(appId);
     try {
-      await api.approveApplication(project.id, appId, token);
+      await api.approveApplication(project.id, appId);
       await loadData();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to approve');
@@ -473,7 +489,7 @@ function TeamManagementModal({
     if (!confirm('Reject this application?')) return;
     setActionLoading(appId);
     try {
-      await api.rejectApplication(project.id, appId, token);
+      await api.rejectApplication(project.id, appId);
       setApplications((prev) => prev.filter((a) => a.id !== appId));
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to reject');
@@ -488,7 +504,7 @@ function TeamManagementModal({
     setAddLoading(true);
     setError(null);
     try {
-      const c = await api.addContributor(project.id, { user_id: addUserId, role: addRole.trim() }, token);
+      const c = await api.addContributor(project.id, { user_id: addUserId, role: addRole.trim() });
       setContributors((prev) => [...prev, c]);
       setAddUserId('');
       setAddRole('');

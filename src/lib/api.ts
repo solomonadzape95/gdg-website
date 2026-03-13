@@ -48,21 +48,21 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(
-  path: string,
-  options: RequestInit & { token?: string | null } = {}
-): Promise<T> {
-  const { token, ...init } = options;
+export type PublicFormKind = 'apply_to_speak' | 'volunteer' | 'contact';
+
+export type PublicFormPayload = {
+  kind: PublicFormKind;
+  payload: unknown;
+};
+
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const base = getApiUrl();
   const url = path.startsWith('http') ? path : `${base}${path.startsWith('/') ? '' : '/'}${path}`;
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    ...(init.headers as Record<string, string>),
+    ...(options.headers as Record<string, string>),
   };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  const res = await fetch(url, { ...init, headers });
+  const res = await fetch(url, { ...options, headers, credentials: 'include' });
   const text = await res.text();
   let data: unknown;
   try {
@@ -101,6 +101,13 @@ export const api = {
     });
   },
 
+  logout(): Promise<{ message: string }> {
+    return request<{ message: string }>('/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    });
+  },
+
   register(payload: RegisterPayload): Promise<User> {
     return request<User>('/auth/signup', {
       method: 'POST',
@@ -114,31 +121,28 @@ export const api = {
     });
   },
 
-  getMe(token: string): Promise<User> {
-    return request<User>('/users/me', { token });
+  getMe(): Promise<User> {
+    return request<User>('/users/me', { credentials: 'include' });
   },
 
-  updateMe(payload: UpdateUserPayload, token: string): Promise<User> {
+  updateMe(payload: UpdateUserPayload): Promise<User> {
     return request<User>('/users/me', {
       method: 'PATCH',
       body: JSON.stringify(payload),
-      token,
+      credentials: 'include',
     });
   },
 
-  getUsers(token: string): Promise<User[]> {
-    return request<User[]>('/admin/users/', { token });
+  getUsers(): Promise<User[]> {
+    return request<User[]>('/admin/users/', { credentials: 'include' });
   },
 
-  getCommunityMembers(
-    token: string,
-    params?: { skip?: number; limit?: number }
-  ): Promise<User[]> {
+  getCommunityMembers(params?: { skip?: number; limit?: number }): Promise<User[]> {
     const search = new URLSearchParams();
     if (params?.skip !== undefined) search.set('skip', String(params.skip));
     if (params?.limit !== undefined) search.set('limit', String(params.limit));
     const qs = search.toString();
-    return request<User[]>(`/api/v1/community/members${qs ? `?${qs}` : ''}`, { token });
+    return request<User[]>(`/api/v1/community/members${qs ? `?${qs}` : ''}`, { credentials: 'include' });
   },
 
   getEvents(params?: { from_date?: string; limit?: number }): Promise<Event[]> {
@@ -146,11 +150,11 @@ export const api = {
     if (params?.from_date) search.set('from_date', params.from_date);
     if (params?.limit) search.set('limit', String(params.limit));
     const qs = search.toString();
-    return request<Event[]>(`/events/${qs ? `?${qs}` : ''}`);
+    return request<Event[]>(`/events/${qs ? `?${qs}` : ''}`, { credentials: 'include' });
   },
 
   getEvent(id: string): Promise<Event> {
-    return request<Event>(`/events/${id}`);
+    return request<Event>(`/events/${id}`, { credentials: 'include' });
   },
 
   createEvent(
@@ -162,13 +166,12 @@ export const api = {
       end_time: string;
       image_url?: string | null;
       location?: string | null;
-    },
-    token: string
+    }
   ): Promise<Event> {
     return request<Event>('/events/', {
       method: 'POST',
       body: JSON.stringify(payload),
-      token,
+      credentials: 'include',
     });
   },
 
@@ -182,72 +185,69 @@ export const api = {
       end_time?: string;
       image_url?: string | null;
       location?: string | null;
-    },
-    token: string
+    }
   ): Promise<Event> {
     return request<Event>(`/events/${id}`, {
       method: 'PUT',
       body: JSON.stringify(payload),
-      token,
+      credentials: 'include',
     });
   },
 
-  deleteEvent(id: string, token: string): Promise<void> {
-    return request<void>(`/events/${id}`, { method: 'DELETE', token });
+  deleteEvent(id: string): Promise<void> {
+    return request<void>(`/events/${id}`, { method: 'DELETE', credentials: 'include' });
   },
 
   addSpeaker(
     eventId: string,
-    payload: { name: string; bio: string; image_url?: string | null; topic?: string | null; niche: string },
-    token: string
+    payload: { name: string; bio: string; image_url?: string | null; topic?: string | null; niche: string }
   ): Promise<Speaker> {
     return request<Speaker>(`/events/${eventId}/speakers`, {
       method: 'POST',
       body: JSON.stringify(payload),
-      token,
+      credentials: 'include',
     });
   },
 
   updateSpeaker(
     eventId: string,
     speakerId: string,
-    payload: { name?: string; bio?: string; image_url?: string | null; topic?: string | null; niche?: string },
-    token: string
+    payload: { name?: string; bio?: string; image_url?: string | null; topic?: string | null; niche?: string }
   ): Promise<Speaker> {
     return request<Speaker>(`/events/${eventId}/speakers/${speakerId}`, {
       method: 'PATCH',
       body: JSON.stringify(payload),
-      token,
+      credentials: 'include',
     });
   },
 
-  removeSpeaker(eventId: string, speakerId: string, token: string): Promise<void> {
+  removeSpeaker(eventId: string, speakerId: string): Promise<void> {
     return request<void>(`/events/${eventId}/speakers/${speakerId}`, {
       method: 'DELETE',
-      token,
+      credentials: 'include',
     });
   },
 
-  registerForEvent(eventId: string, token: string): Promise<EventRegistration> {
+  registerForEvent(eventId: string): Promise<EventRegistration> {
     return request<EventRegistration>(`/events/${eventId}/register`, {
       method: 'POST',
-      token,
+      credentials: 'include',
     });
   },
 
-  unregisterFromEvent(eventId: string, token: string): Promise<void> {
+  unregisterFromEvent(eventId: string): Promise<void> {
     return request<void>(`/events/${eventId}/register`, {
       method: 'DELETE',
-      token,
+      credentials: 'include',
     });
   },
 
-  getRegistrationStatus(eventId: string, token: string): Promise<{ registered: boolean }> {
-    return request<{ registered: boolean }>(`/events/${eventId}/registration`, { token });
+  getRegistrationStatus(eventId: string): Promise<{ registered: boolean }> {
+    return request<{ registered: boolean }>(`/events/${eventId}/registration`, { credentials: 'include' });
   },
 
-  getMyRegistrations(token: string): Promise<EventRegistration[]> {
-    return request<EventRegistration[]>('/events/me/registrations', { token });
+  getMyRegistrations(): Promise<EventRegistration[]> {
+    return request<EventRegistration[]>('/events/me/registrations', { credentials: 'include' });
   },
 
   getProjects(params?: { status?: string; limit?: number }): Promise<Project[]> {
@@ -255,30 +255,27 @@ export const api = {
     if (params?.status) search.set('status', params.status);
     if (params?.limit) search.set('limit', String(params.limit));
     const qs = search.toString();
-    return request<Project[]>(`/api/v1/projects/${qs ? `?${qs}` : ''}`);
+    return request<Project[]>(`/api/v1/projects/${qs ? `?${qs}` : ''}`, { credentials: 'include' });
   },
 
   getProject(id: string): Promise<Project> {
-    return request<Project>(`/api/v1/projects/${id}`);
+    return request<Project>(`/api/v1/projects/${id}`, { credentials: 'include' });
   },
 
-  createProject(
-    payload: {
-      project_type: 'personal' | 'community';
-      title: string;
-      description: string;
-      duration?: string | null;
-      start_date?: string | null;
-      end_date?: string | null;
-      github_repo?: string | null;
-      demo_video_url?: string | null;
-    },
-    token: string
-  ): Promise<Project> {
+  createProject(payload: {
+    project_type: 'personal' | 'community';
+    title: string;
+    description: string;
+    duration?: string | null;
+    start_date?: string | null;
+    end_date?: string | null;
+    github_repo?: string | null;
+    demo_video_url?: string | null;
+  }): Promise<Project> {
     return request<Project>('/api/v1/projects/', {
       method: 'POST',
       body: JSON.stringify(payload),
-      token,
+      credentials: 'include',
     });
   },
 
@@ -293,75 +290,69 @@ export const api = {
       github_repo?: string | null;
       demo_video_url?: string | null;
       status?: 'ongoing' | 'completed';
-    },
-    token: string
+    }
   ): Promise<Project> {
     return request<Project>(`/api/v1/projects/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(payload),
-      token,
+      credentials: 'include',
     });
   },
 
-  deleteProject(id: string, token: string): Promise<void> {
-    return request<void>(`/api/v1/projects/${id}`, { method: 'DELETE', token });
+  deleteProject(id: string): Promise<void> {
+    return request<void>(`/api/v1/projects/${id}`, { method: 'DELETE', credentials: 'include' });
   },
 
   getProjectContributors(projectId: string): Promise<ProjectContributor[]> {
-    return request<ProjectContributor[]>(`/api/v1/projects/${projectId}/contributors`);
+    return request<ProjectContributor[]>(`/api/v1/projects/${projectId}/contributors`, { credentials: 'include' });
   },
 
   addContributor(
     projectId: string,
-    payload: { user_id: string; role: string },
-    token: string
+    payload: { user_id: string; role: string }
   ): Promise<ProjectContributor> {
     return request<ProjectContributor>(`/api/v1/projects/${projectId}/contributors`, {
       method: 'POST',
       body: JSON.stringify(payload),
-      token,
+      credentials: 'include',
     });
   },
 
-  removeContributor(projectId: string, userId: string, token: string): Promise<void> {
+  removeContributor(projectId: string, userId: string): Promise<void> {
     return request<void>(`/api/v1/projects/${projectId}/contributors/${userId}`, {
       method: 'DELETE',
-      token,
+      credentials: 'include',
     });
   },
 
-  applyToProject(
-    projectId: string,
-    payload: { role: string },
-    token: string
-  ): Promise<ProjectApplication> {
+  applyToProject(projectId: string, payload: { role: string }): Promise<ProjectApplication> {
     return request<ProjectApplication>(`/api/v1/projects/${projectId}/apply`, {
       method: 'POST',
       body: JSON.stringify(payload),
-      token,
+      credentials: 'include',
     });
   },
 
-  getProjectApplications(projectId: string, token: string): Promise<ProjectApplication[]> {
-    return request<ProjectApplication[]>(`/api/v1/projects/${projectId}/applications`, { token });
+  getProjectApplications(projectId: string): Promise<ProjectApplication[]> {
+    return request<ProjectApplication[]>(`/api/v1/projects/${projectId}/applications`, { credentials: 'include' });
   },
 
-  approveApplication(projectId: string, applicantId: string, token: string): Promise<ProjectApplication> {
+  approveApplication(projectId: string, applicantId: string): Promise<ProjectApplication> {
     return request<ProjectApplication>(
       `/api/v1/projects/${projectId}/applications/${applicantId}/approve`,
-      { method: 'PATCH', token }
+      { method: 'PATCH', credentials: 'include' }
     );
   },
 
-  rejectApplication(projectId: string, applicantId: string, token: string): Promise<void> {
+  rejectApplication(projectId: string, applicantId: string): Promise<void> {
     return request<void>(
       `/api/v1/projects/${projectId}/applications/${applicantId}`,
-      { method: 'DELETE', token }
+      { method: 'DELETE', credentials: 'include' }
     );
   },
 
-  getMyApplications(token: string): Promise<ProjectApplication[]> {
-    return request<ProjectApplication[]>('/api/v1/projects/me/applications', { token });
+  getMyApplications(): Promise<ProjectApplication[]> {
+    return request<ProjectApplication[]>('/api/v1/projects/me/applications', { credentials: 'include' });
   },
 
   getBlogposts(params?: { skip?: number; limit?: number }): Promise<BlogPost[]> {
@@ -369,79 +360,86 @@ export const api = {
     if (params?.skip !== undefined) search.set('skip', String(params.skip));
     if (params?.limit !== undefined) search.set('limit', String(params.limit));
     const qs = search.toString();
-    return request<BlogPost[]>(`/api/v1/blogposts/${qs ? `?${qs}` : ''}`);
+    return request<BlogPost[]>(`/api/v1/blogposts/${qs ? `?${qs}` : ''}`, { credentials: 'include' });
   },
 
-  getMyBlogposts(
-    token: string,
-    params?: { skip?: number; limit?: number }
-  ): Promise<BlogPostAdmin[]> {
+  getTeam(): Promise<TeamMemberResponse[]> {
+    return request<TeamMemberResponse[]>(`/api/v1/team`, { credentials: 'include' });
+  },
+
+  submitPublicForm(body: PublicFormPayload): Promise<{ message: string }> {
+    return request<{ message: string }>('/api/v1/public/forms/submit', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  getMyBlogposts(params?: { skip?: number; limit?: number }): Promise<BlogPostAdmin[]> {
     const search = new URLSearchParams();
     if (params?.skip !== undefined) search.set('skip', String(params.skip));
     if (params?.limit !== undefined) search.set('limit', String(params.limit));
     const qs = search.toString();
-    return request<BlogPostAdmin[]>(`/api/v1/blogposts/me${qs ? `?${qs}` : ''}`, { token });
+    return request<BlogPostAdmin[]>(`/api/v1/blogposts/me${qs ? `?${qs}` : ''}`, { credentials: 'include' });
   },
 
-  getBlogpost(id: string, token?: string | null): Promise<BlogPost> {
-    return request<BlogPost>(`/api/v1/blogposts/${id}`, { token });
+  getBlogpost(id: string): Promise<BlogPost> {
+    return request<BlogPost>(`/api/v1/blogposts/${id}`, { credentials: 'include' });
   },
 
-  submitBlogpost(
-    payload: { title: string; content: string; image_url?: string | null; niche?: string | null },
-    token: string
-  ): Promise<BlogPost> {
+  submitBlogpost(payload: {
+    title: string;
+    content: string;
+    image_url?: string | null;
+    niche?: string | null;
+  }): Promise<BlogPost> {
     return request<BlogPost>('/api/v1/blogposts/', {
       method: 'POST',
       body: JSON.stringify(payload),
-      token,
+      credentials: 'include',
     });
   },
 
-  likeBlogpost(postId: string, token: string): Promise<unknown> {
-    return request(`/api/v1/blogposts/${postId}/like`, { method: 'POST', token });
+  likeBlogpost(postId: string): Promise<unknown> {
+    return request(`/api/v1/blogposts/${postId}/like`, { method: 'POST', credentials: 'include' });
   },
 
   getComments(postId: string): Promise<Comment[]> {
-    return request<Comment[]>(`/api/v1/blogposts/${postId}/comments`);
+    return request<Comment[]>(`/api/v1/blogposts/${postId}/comments`, { credentials: 'include' });
   },
 
-  postComment(postId: string, content: string, token: string): Promise<Comment> {
+  postComment(postId: string, content: string): Promise<Comment> {
     return request<Comment>(`/api/v1/blogposts/${postId}/comments`, {
       method: 'POST',
       body: JSON.stringify({ content }),
-      token,
+      credentials: 'include',
     });
   },
 
-  getAdminBlogposts(
-    token: string,
-    params?: { status?: string; skip?: number; limit?: number }
-  ): Promise<BlogPostAdmin[]> {
+  getAdminBlogposts(params?: {
+    status?: string;
+    skip?: number;
+    limit?: number;
+  }): Promise<BlogPostAdmin[]> {
     const search = new URLSearchParams();
     if (params?.status && params.status !== 'all') search.set('status', params.status);
     if (params?.skip !== undefined) search.set('skip', String(params.skip));
     if (params?.limit !== undefined) search.set('limit', String(params.limit));
     const qs = search.toString();
-    return request<BlogPostAdmin[]>(`/api/v1/admin/blogposts/${qs ? `?${qs}` : ''}`, { token });
+    return request<BlogPostAdmin[]>(`/api/v1/admin/blogposts/${qs ? `?${qs}` : ''}`, { credentials: 'include' });
   },
 
-  approveBlogpost(postId: string, token: string): Promise<BlogPostAdmin> {
+  approveBlogpost(postId: string): Promise<BlogPostAdmin> {
     return request<BlogPostAdmin>(`/api/v1/admin/blogposts/${postId}/approve`, {
       method: 'PATCH',
-      token,
+      credentials: 'include',
     });
   },
 
-  rejectBlogpost(
-    postId: string,
-    payload: { rejection_reason?: string },
-    token: string
-  ): Promise<BlogPostAdmin> {
+  rejectBlogpost(postId: string, payload: { rejection_reason?: string }): Promise<BlogPostAdmin> {
     return request<BlogPostAdmin>(`/api/v1/admin/blogposts/${postId}/reject`, {
       method: 'PATCH',
       body: JSON.stringify(payload),
-      token,
+      credentials: 'include',
     });
   },
 };
@@ -542,4 +540,11 @@ export type Comment = {
   created_at: string;
   updated_at?: string;
   author?: { id: string; full_name: string | null; email: string } | null;
+};
+
+export type TeamMemberResponse = {
+  id: string;
+  name: string;
+  role: string;
+  image_url: string | null;
 };

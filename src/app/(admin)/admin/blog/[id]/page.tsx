@@ -11,7 +11,7 @@ import { cls } from '@/utils';
 
 export default function AdminBlogPostDetailPage() {
   const params = useParams();
-  const { token } = useAuth();
+  const { user } = useAuth();
   const id = params.id as string;
   const [post, setPost] = useState<BlogPost | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -25,7 +25,7 @@ export default function AdminBlogPostDetailPage() {
     setLoading(true);
     setError(null);
     api
-      .getBlogpost(id, token ?? undefined)
+      .getBlogpost(id)
       .then((p) => {
         setPost(p);
         return api.getComments(id);
@@ -37,13 +37,13 @@ export default function AdminBlogPostDetailPage() {
 
   useEffect(() => {
     if (id) loadPost();
-  }, [id, token]);
+  }, [id, user]);
 
   const handleApprove = async () => {
-    if (!token || actionLoading) return;
+    if (!user || actionLoading) return;
     setActionLoading(true);
     try {
-      await api.approveBlogpost(id, token);
+      await api.approveBlogpost(id);
       loadPost();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to approve');
@@ -53,10 +53,10 @@ export default function AdminBlogPostDetailPage() {
   };
 
   const handleReject = async () => {
-    if (!token || actionLoading) return;
+    if (!user || actionLoading) return;
     setActionLoading(true);
     try {
-      await api.rejectBlogpost(id, { rejection_reason: rejectionReason.trim() || undefined }, token);
+      await api.rejectBlogpost(id, { rejection_reason: rejectionReason.trim() || undefined });
       setShowRejectModal(false);
       setRejectionReason('');
       loadPost();
@@ -79,8 +79,14 @@ export default function AdminBlogPostDetailPage() {
     return (
       <div className={cls('space-y-6')}>
         <p className={cls('text-red-600')}>{error ?? 'Post not found'}</p>
-        <Link href="/admin/blog" className={cls('text-alexandra hover:underline')}>
-          Back to moderation
+        <Link
+          href="/admin/blog"
+          className={cls(
+            'inline-flex items-center gap-2 rounded-lg border border-[#DADCE0] px-4 py-2 text-sm font-medium text-blackout',
+            'hover:border-alexandra hover:text-alexandra transition-colors'
+          )}
+        >
+          ← Back to moderation
         </Link>
       </div>
     );
@@ -88,7 +94,13 @@ export default function AdminBlogPostDetailPage() {
 
   return (
     <div className={cls('space-y-6')}>
-      <Link href="/admin/blog" className={cls('text-alexandra hover:underline text-sm')}>
+      <Link
+        href="/admin/blog"
+        className={cls(
+          'inline-flex items-center gap-2 rounded-lg border border-[#DADCE0] px-4 py-2 text-sm font-medium text-blackout',
+          'hover:border-alexandra hover:text-alexandra transition-colors'
+        )}
+      >
         ← Back to moderation
       </Link>
       <article
@@ -132,7 +144,7 @@ export default function AdminBlogPostDetailPage() {
           <span className={cls('text-sm text-solid-matte-gray')}>
             {post.likes_count ?? 0} likes · {post.comments_count ?? comments.length} comments
           </span>
-          {post.status === 'pending' && token && (
+          {post.status === 'pending' && user && (
             <div className={cls('flex gap-2 ml-auto')}>
               <button
                 type="button"

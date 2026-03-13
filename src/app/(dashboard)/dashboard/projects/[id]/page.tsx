@@ -10,7 +10,7 @@ import { cls } from '@/utils';
 
 export default function ProjectDetailPage() {
   const params = useParams();
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const id = params.id as string;
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,9 +31,9 @@ export default function ProjectDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!user) return;
     api
-      .getMyApplications(token)
+      .getMyApplications()
       .then((apps) => {
         const match = apps.find((a) => a.project_id === id);
         if (match) {
@@ -42,15 +42,15 @@ export default function ProjectDetailPage() {
         }
       })
       .catch(() => {});
-  }, [id, token]);
+  }, [id, user]);
 
   const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token || !applyRole.trim()) return;
+    if (!user || !applyRole.trim()) return;
     setApplyLoading(true);
     setError(null);
     try {
-      const app = await api.applyToProject(id, { role: applyRole.trim() }, token);
+      const app = await api.applyToProject(id, { role: applyRole.trim() });
       setMyApplication(app);
       setApplied(true);
       setShowApplyForm(false);
@@ -75,9 +75,12 @@ export default function ProjectDetailPage() {
         <p className={cls('text-red-600')}>{error ?? 'Project not found'}</p>
         <Link
           href="/dashboard/projects"
-          className={cls('text-alexandra hover:underline')}
+          className={cls(
+            'inline-flex items-center gap-2 rounded-lg border border-[#DADCE0] px-4 py-2 text-sm font-medium text-blackout',
+            'hover:border-alexandra hover:text-alexandra transition-colors'
+          )}
         >
-          Back to projects
+          ← Back to projects
         </Link>
       </div>
     );
@@ -85,15 +88,18 @@ export default function ProjectDetailPage() {
 
   const isOwner = user?.id === project.creator_id;
   const isContributor = project.contributors?.some((c) => c.user_id === user?.id) ?? false;
-  const canApply = token && !isOwner && !isContributor && !applied && project.status === 'ongoing';
+  const canApply = !!user && !isOwner && !isContributor && !applied && project.status === 'ongoing';
 
   return (
     <div className={cls('space-y-6')}>
       <Link
         href="/dashboard/projects"
-        className={cls('text-sm text-alexandra hover:underline')}
+        className={cls(
+          'inline-flex items-center gap-2 rounded-lg border border-[#DADCE0] px-4 py-2 text-sm font-medium text-blackout',
+          'hover:border-alexandra hover:text-alexandra transition-colors'
+        )}
       >
-        &larr; Back to projects
+        ← Back to projects
       </Link>
       <section
         className={cls(
@@ -111,7 +117,7 @@ export default function ProjectDetailPage() {
                 className={cls(
                   'text-xs px-2 py-1 rounded-sm uppercase',
                   project.project_type === 'community' && 'bg-[#34A853]/20 text-[#34A853]',
-                  project.project_type === 'personal' && 'bg-[#4285F4]/20 text-[#4285F4]'
+                  project.project_type === 'personal' && 'bg-alexandra/20 text-alexandra'
                 )}
               >
                 {project.project_type}

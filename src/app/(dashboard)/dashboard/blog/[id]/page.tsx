@@ -13,7 +13,7 @@ import { cls } from '@/utils';
 export default function BlogPostDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const id = params.id as string;
   const [post, setPost] = useState<BlogPost | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -27,7 +27,7 @@ export default function BlogPostDetailPage() {
     setLoading(true);
     setError(null);
     api
-      .getBlogpost(id, token ?? undefined)
+      .getBlogpost(id)
       .then((p) => {
         setPost(p);
         return api.getComments(id);
@@ -39,13 +39,13 @@ export default function BlogPostDetailPage() {
 
   useEffect(() => {
     if (id) loadPost();
-  }, [id, token]);
+  }, [id, user]);
 
   const handleLike = async () => {
-    if (!token || liking) return;
+    if (!user || liking) return;
     setLiking(true);
     try {
-      await api.likeBlogpost(id, token);
+      await api.likeBlogpost(id);
       loadPost();
     } finally {
       setLiking(false);
@@ -54,10 +54,10 @@ export default function BlogPostDetailPage() {
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token || !commentText.trim() || submittingComment) return;
+    if (!user || !commentText.trim() || submittingComment) return;
     setSubmittingComment(true);
     try {
-      await api.postComment(id, commentText.trim(), token);
+      await api.postComment(id, commentText.trim());
       setCommentText('');
       const updated = await api.getComments(id);
       setComments(updated);
@@ -80,8 +80,14 @@ export default function BlogPostDetailPage() {
     return (
       <div className={cls('space-y-6')}>
         <p className={cls('text-red-600')}>{error ?? 'Post not found'}</p>
-        <Link href="/dashboard/blog" className={cls('text-alexandra hover:underline')}>
-          Back to blog
+        <Link
+          href="/dashboard/blog"
+          className={cls(
+            'inline-flex items-center gap-2 rounded-lg border border-[#DADCE0] px-4 py-2 text-sm font-medium text-blackout',
+            'hover:border-alexandra hover:text-alexandra transition-colors'
+          )}
+        >
+          ← Back to blog
         </Link>
       </div>
     );
@@ -89,7 +95,13 @@ export default function BlogPostDetailPage() {
 
   return (
     <div className={cls('space-y-6')}>
-      <Link href="/dashboard/blog" className={cls('text-alexandra hover:underline text-sm')}>
+      <Link
+        href="/dashboard/blog"
+        className={cls(
+          'inline-flex items-center gap-2 rounded-lg border border-[#DADCE0] px-4 py-2 text-sm font-medium text-blackout',
+          'hover:border-alexandra hover:text-alexandra transition-colors'
+        )}
+      >
         ← Back to blog
       </Link>
       <article
@@ -129,7 +141,7 @@ export default function BlogPostDetailPage() {
           )}
         </div>
         <div className={cls('flex items-center gap-4 mt-6 pt-4 border-t border-[#DADCE0]')}>
-          {token && (
+          {user && (
             <button
               type="button"
               onClick={handleLike}
@@ -159,7 +171,7 @@ export default function BlogPostDetailPage() {
         )}
       >
         <h2 className={cls('text-lg font-semibold mb-4')}>Comments</h2>
-        {token && (
+        {user && (
           <form onSubmit={handleSubmitComment} className={cls('mb-4')}>
             <textarea
               value={commentText}

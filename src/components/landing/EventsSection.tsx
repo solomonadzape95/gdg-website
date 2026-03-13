@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import type { Event } from '@/lib/api';
+import { AppModal } from '@/components/shared';
 
 function formatEventDate(d: string) {
   return new Date(d).toLocaleDateString('en-NG', {
@@ -78,6 +78,9 @@ export const EventsSection = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [isDetailsLoading, setIsDetailsLoading] = useState(false);
+  const [registerStatus, setRegisterStatus] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -87,6 +90,35 @@ export const EventsSection = () => {
       .catch(() => setEvents([]))
       .finally(() => setLoading(false));
   }, []);
+
+  const openDetails = async (event: Event) => {
+    setRegisterStatus(null);
+    setSelectedEvent(event);
+    setIsDetailsLoading(true);
+    try {
+      const full = await api.getEvent(event.id);
+      setSelectedEvent(full);
+    } catch {
+      // fall back to the lightweight event if details fail
+    } finally {
+      setIsDetailsLoading(false);
+    }
+  };
+
+  const handleRegister = async () => {
+    if (!selectedEvent) return;
+    setRegisterStatus(null);
+    try {
+      await api.registerForEvent(selectedEvent.id);
+      setRegisterStatus('You are registered for this event 🎉');
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        setRegisterStatus('Please log in to register. You can sign in from the top-right of the page.');
+        return;
+      }
+      setRegisterStatus('Could not register for this event. Please try again.');
+    }
+  };
 
   const filteredEvents = searchQuery.trim()
     ? events.filter(
@@ -107,7 +139,7 @@ export const EventsSection = () => {
   };
 
   return (
-    <section className="bg-[#F8F8F8] px-6 py-16 md:px-20 md:py-24">
+    <section className="bg-[#F8F8F8] px-6 py-16 md:px-20 md:py-24" id="events">
       <div className="mx-auto max-w-6xl">
         {/* Header */}
         <div className="mb-12 flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
@@ -187,12 +219,13 @@ export const EventsSection = () => {
                         <p className="text-sm text-alexandra">{event.location}</p>
                       )}
                     </div>
-                    <Link
-                      href={`/dashboard/events/${event.id}`}
+                    <button
+                      type="button"
+                      onClick={() => openDetails(event)}
                       className="rounded-md bg-blackout px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blackout/90"
                     >
                       View details
-                    </Link>
+                    </button>
                   </div>
                 </div>
               </article>
@@ -217,6 +250,94 @@ export const EventsSection = () => {
             <ChevronRight />
           </button>
         </div>
+
+        {selectedEvent && (
+          <AppModal
+            open
+            onClose={() => {
+              setSelectedEvent(null);
+              setRegisterStatus(null);
+            }}
+            title={selectedEvent.title}
+            actions={
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedEvent(null);
+                    setRegisterStatus(null);
+                  }}
+                  className="rounded-md border border-[#DADCE0] px-4 py-2 text-sm font-medium text-solid-matte-gray hover:bg-tech-white"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRegister}
+                  className="rounded-md bg-alexandra px-4 py-2 text-sm font-medium text-white hover:bg-[#357AE8]"
+                >
+                  Register
+                </button>
+              </>
+            }
+          >
+            {isDetailsLoading ? (
+              <p className="text-sm text-solid-matte-gray">Loading event details...</p>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-blackout">
+                    {formatEventDate(selectedEvent.date)}
+                  </p>
+                  {selectedEvent.start_time && selectedEvent.end_time && (
+                    <p className="text-xs text-solid-matte-gray">
+                      {selectedEvent.start_time} - {selectedEvent.end_time}
+                    </p>
+                  )}
+                  {selectedEvent.location && (
+                    <p className="text-sm text-alexandra">{selectedEvent.location}</p>
+                  )}
+                </div>
+
+                {selectedEvent.image_url && (
+                  <div className="relative h-40 w-full overflow-hidden rounded-lg bg-[#E0E0E0]">
+                    <Image
+                      src={selectedEvent.image_url}
+                      alt={selectedEvent.title}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  </div>
+                )}
+
+                {selectedEvent.description && (
+                  <p className="text-sm leading-relaxed text-solid-matte-gray">
+                    {selectedEvent.description}
+                  </p>
+                )}
+
+                {Array.isArray(selectedEvent.speakers) && selectedEvent.speakers.length > 0 && (
+                  <div>
+                    <h4 className="mb-2 text-sm font-semibold text-blackout">Speakers</h4>
+                    <ul className="space-y-1 text-sm text-solid-matte-gray">
+                      {selectedEvent.speakers.map((speaker) => (
+                        <li key={speaker.id}>
+                          <span className="font-medium text-blackout">{speaker.name}</span>
+                          {speaker.topic && <> — {speaker.topic}</>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {registerStatus && (
+                  <p className="text-xs text-alexandra">{registerStatus}</p>
+                )}
+              </div>
+            )}
+          </AppModal>
+        )}
       </div>
     </section>
   );

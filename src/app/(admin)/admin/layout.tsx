@@ -16,7 +16,7 @@ export default function AdminLayout({
   return (
     <RequireAdmin>
       <div className={cls('min-h-screen bg-tech-white')}>
-        <AdminHeader />
+        {!isLoginPage && <AdminHeader />}
         <main className={cls('mx-auto w-full max-w-6xl px-4 py-8 md:px-6')}>
           <div className={cls(isLoginPage ? '' : 'mt-6')}>{children}</div>
         </main>

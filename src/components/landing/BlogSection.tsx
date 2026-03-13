@@ -40,7 +40,7 @@ export const BlogSection = () => {
   }, []);
 
   return (
-    <section className="bg-[#F8F8F8] px-6 py-16 md:px-20 md:py-24">
+    <section className="bg-[#F8F8F8] px-6 py-16 md:px-20 md:py-24" id="blog">
       <div className="mx-auto max-w-6xl">
         {/* Header */}
         <div className="mb-12">

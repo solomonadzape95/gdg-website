@@ -9,7 +9,7 @@ import { cls } from '@/utils';
 
 export default function BlogSubmitPage() {
   const router = useRouter();
-  const { token } = useAuth();
+  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [niche, setNiche] = useState('');
@@ -19,19 +19,16 @@ export default function BlogSubmitPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) return;
+    if (!user) return;
     setSubmitting(true);
     setError(null);
     try {
-      await api.submitBlogpost(
-        {
-          title,
-          content,
-          niche: niche.trim() || undefined,
-          image_url: imageUrl.trim() || undefined,
-        },
-        token
-      );
+      await api.submitBlogpost({
+        title,
+        content,
+        niche: niche.trim() || undefined,
+        image_url: imageUrl.trim() || undefined,
+      });
       router.push('/dashboard/blog?submitted=1');
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to submit post');
@@ -44,7 +41,10 @@ export default function BlogSubmitPage() {
     <div className={cls('space-y-6')}>
       <Link
         href="/dashboard/blog"
-        className={cls('text-sm text-alexandra hover:underline')}
+        className={cls(
+          'inline-flex items-center gap-2 rounded-lg border border-[#DADCE0] px-4 py-2 text-sm font-medium text-blackout',
+          'hover:border-alexandra hover:text-alexandra transition-colors'
+        )}
       >
         ← Back to blog
       </Link>

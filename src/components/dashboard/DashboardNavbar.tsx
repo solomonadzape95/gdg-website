@@ -18,7 +18,7 @@ function getDashboardLinks(isAdmin: boolean): LinkItem[] {
     { target: '/dashboard/community', label: 'Community' },
     { target: '/dashboard/events', label: 'Events' },
     { target: '/dashboard/projects', label: 'Projects' },
-    { target: '/dashboard/blog', label: 'Blog' },
+    { target: '/dashboard/blog', label: 'Blog' }
   ];
   if (isAdmin) {
     links.push({ target: '/admin', label: 'Admin' });
@@ -33,9 +33,9 @@ export function DashboardNavbar() {
   const { user, logout, isHydrated } = useAuth();
   const navLinks = getDashboardLinks(user?.is_admin ?? false);
 
-  const handleNavClick = (item: LinkItem) => {
+  const handleNavClick = async (item: LinkItem) => {
     if (item.label === 'Log out') {
-      logout();
+      await logout();
       window.location.href = '/';
     }
     setIsDrawerOpen(false);
@@ -45,7 +45,8 @@ export function DashboardNavbar() {
     const isActive =
       label === 'Dashboard'
         ? pathname === '/dashboard'
-        : pathname === target || (target !== '/dashboard' && pathname.startsWith(target));
+        : pathname === target ||
+          (target !== '/dashboard' && pathname.startsWith(target));
     return cls(
       'px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
       isActive
@@ -65,17 +66,17 @@ export function DashboardNavbar() {
               borderBottomRightRadius: '16px',
               borderTopRightRadius: '16px',
               backgroundColor: 'white',
-              width: 'min(320px, 85vw)',
-            },
-          },
+              width: 'min(320px, 85vw)'
+            }
+          }
         }}
       >
         <aside className="flex h-full flex-col bg-white p-6">
-          <div className="flex items-center justify-between mb-8">
+          <div className="mb-8 flex items-center justify-between">
             <Link href="/dashboard" onClick={() => setIsDrawerOpen(false)}>
               <Image
                 alt="GDG UNN Logo"
-                src="/graphics/logo-banner.svg"
+                src="/images/logo-banner.png"
                 height={52}
                 width={220}
                 className="h-11 w-auto"
@@ -84,7 +85,7 @@ export function DashboardNavbar() {
             <button
               type="button"
               onClick={() => setIsDrawerOpen(false)}
-              className="p-2 -m-2 text-solid-matte-gray hover:text-blackout"
+              className="text-solid-matte-gray hover:text-blackout -m-2 p-2"
               aria-label="Close menu"
             >
               <ReactSVG src="/graphics/close.svg" />
@@ -99,7 +100,7 @@ export function DashboardNavbar() {
                     type="button"
                     onClick={() => handleNavClick({ target, label })}
                     className={cls(
-                      'px-3 py-3 text-left rounded-lg text-solid-matte-gray hover:bg-red-50 hover:text-red-600 font-medium'
+                      'text-solid-matte-gray rounded-lg px-3 py-3 text-left font-medium hover:bg-red-50 hover:text-red-600'
                     )}
                   >
                     {label}
@@ -119,15 +120,15 @@ export function DashboardNavbar() {
         </aside>
       </Drawer>
       <header className="sticky top-0 z-20 w-full border-b border-[#DADCE0] bg-white shadow-sm">
-        <div className="mx-auto flex h-16 w-full max-w-[90rem] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-16 w-full max-w-360 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           {/* Logo - fixed width, no overlap */}
           <Link
             href="/dashboard"
-            className="flex shrink-0 items-center min-w-0"
+            className="flex min-w-0 shrink-0 items-center"
           >
             <Image
               alt="GDG UNN"
-              src="/graphics/logo-banner.svg"
+              src="/images/logo-banner.png"
               height={48}
               width={220}
               className="h-10 w-auto max-w-[180px] sm:max-w-[220px]"
@@ -137,7 +138,7 @@ export function DashboardNavbar() {
 
           {/* Desktop nav - scrollable if needed */}
           <nav className="hidden flex-1 justify-end md:flex">
-            <ul className="flex items-center gap-1 overflow-x-auto">
+            <ul className="scrollbar-hide flex items-center gap-1 overflow-x-auto">
               {isHydrated &&
                 navLinks.map(({ target, label }) => (
                   <li key={label} className="shrink-0">
@@ -146,8 +147,8 @@ export function DashboardNavbar() {
                         type="button"
                         onClick={() => handleNavClick({ target, label })}
                         className={cls(
-                          'px-3 py-2 rounded-lg text-sm font-medium',
-                          'text-solid-matte-gray hover:bg-red-50 hover:text-red-600 transition-colors'
+                          'rounded-lg px-3 py-2 text-sm font-medium',
+                          'text-solid-matte-gray transition-colors hover:bg-red-50 hover:text-red-600'
                         )}
                       >
                         {label}
@@ -169,10 +170,10 @@ export function DashboardNavbar() {
           <button
             type="button"
             onClick={() => setIsDrawerOpen(true)}
-            className="p-2 -m-2 text-solid-matte-gray hover:text-blackout md:hidden"
+            className="text-solid-matte-gray hover:text-blackout -m-2 p-2 md:hidden"
             aria-label="Open menu"
           >
-            <ReactSVG src="/graphics/menu.svg" className="w-6 h-6" />
+            <ReactSVG src="/graphics/menu.svg" className="h-6 w-6" />
           </button>
         </div>
       </header>

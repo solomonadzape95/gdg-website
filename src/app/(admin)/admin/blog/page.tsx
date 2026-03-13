@@ -7,7 +7,7 @@ import { api, ApiError, type BlogPostAdmin } from '@/lib/api';
 import { cls } from '@/utils';
 
 export default function AdminBlogPage() {
-  const { token } = useAuth();
+  const { user } = useAuth();
   const [posts, setPosts] = useState<BlogPostAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -15,11 +15,11 @@ export default function AdminBlogPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const loadPosts = async () => {
-    if (!token) return;
+    if (!user) return;
     setLoading(true);
     setError(null);
     try {
-      const list = await api.getAdminBlogposts(token, {
+      const list = await api.getAdminBlogposts({
         ...(statusFilter !== 'all' && { status: statusFilter }),
         limit: 50,
       });
@@ -33,13 +33,13 @@ export default function AdminBlogPage() {
 
   useEffect(() => {
     loadPosts();
-  }, [token, statusFilter]);
+  }, [user, statusFilter]);
 
   const handleApprove = async (postId: string) => {
-    if (!token) return;
+    if (!user) return;
     setActionLoading(postId);
     try {
-      await api.approveBlogpost(postId, token);
+      await api.approveBlogpost(postId);
       loadPosts();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to approve');
@@ -49,10 +49,10 @@ export default function AdminBlogPage() {
   };
 
   const handleReject = async (postId: string, reason?: string) => {
-    if (!token) return;
+    if (!user) return;
     setActionLoading(postId);
     try {
-      await api.rejectBlogpost(postId, { rejection_reason: reason }, token);
+      await api.rejectBlogpost(postId, { rejection_reason: reason });
       loadPosts();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to reject');

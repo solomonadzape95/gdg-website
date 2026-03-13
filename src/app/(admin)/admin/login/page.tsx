@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,8 +21,9 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { setToken, setUser } = useAuth();
+  const { setUser } = useAuth();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -34,9 +36,8 @@ export default function AdminLoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     setSubmitError(null);
     try {
-      const res = await api.adminLogin({ email: data.email, password: data.password });
-      setToken(res.access_token);
-      const me = await api.getMe(res.access_token);
+      await api.adminLogin({ email: data.email, password: data.password });
+      const me = await api.getMe();
       setUser(me);
       router.push('/admin');
     } catch (e) {
@@ -94,16 +95,28 @@ export default function AdminLoginPage() {
             <label htmlFor="password" className={cls('block text-sm font-medium text-blackout mb-1')}>
               Password
             </label>
-            <input
-              id="password"
-              type="password"
-              {...register('password')}
-              className={cls(
-                'w-full px-4 py-2 border border-[#DADCE0] rounded-lg',
-                'focus:outline-none focus:ring-2 focus:ring-alexandra focus:border-transparent',
-                'text-blackout'
-              )}
-            />
+            <div className={cls('relative')}>
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                {...register('password')}
+                className={cls(
+                  'w-full px-4 py-2 pr-12 border border-[#DADCE0] rounded-lg',
+                  'focus:outline-none focus:ring-2 focus:ring-alexandra focus:border-transparent',
+                  'text-blackout'
+                )}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className={cls(
+                  'absolute right-3 top-1/2 -translate-y-1/2 text-solid-matte-gray hover:text-blackout transition-colors'
+                )}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+              </button>
+            </div>
             {errors.password && (
               <p className={cls('mt-1 text-sm text-red-600')}>{errors.password.message}</p>
             )}

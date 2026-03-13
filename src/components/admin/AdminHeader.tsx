@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { ReactSVG } from 'react-svg';
 import { Drawer } from '@mui/material';
 import Image from 'next/image';
@@ -10,14 +11,21 @@ import { cls } from '@/utils';
 
 const adminLinks = [
   { target: '/admin', label: 'Dashboard' },
-  { target: '/admin', label: 'Users' },
+  { target: '/admin/users', label: 'Users' },
   { target: '/admin/blog', label: 'Blog' },
   { target: '/admin/events', label: 'Events' },
   { target: '/admin/projects', label: 'Projects' },
-  { target: '#', label: 'Log out' },
+  { target: '#', label: 'Log out' }
 ];
 
+function isLinkActive(pathname: string, target: string): boolean {
+  if (target === '#') return false;
+  if (target === '/admin') return pathname === '/admin';
+  return pathname.startsWith(target);
+}
+
 export function AdminHeader() {
+  const pathname = usePathname();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const { logout, isHydrated } = useAuth();
 
@@ -40,17 +48,17 @@ export function AdminHeader() {
               borderBottomRightRadius: '32px',
               borderTopRightRadius: '32px',
               backgroundColor: 'white',
-              width: 'min(320px, 85vw)',
-            },
-          },
+              width: 'min(320px, 85vw)'
+            }
+          }
         }}
       >
-        <aside className="flex h-full flex-col bg-white p-6 border-r border-[#DADCE0]">
-          <div className="flex items-center justify-between mb-8">
+        <aside className="flex h-full flex-col border-r border-[#DADCE0] bg-white p-6">
+          <div className="mb-8 flex items-center justify-between">
             <Link href="/admin" onClick={() => setIsDrawerOpen(false)}>
               <Image
                 alt="GDG UNN Logo"
-                src="/graphics/logo-banner.svg"
+                src="/images/logo-banner.png"
                 height={52}
                 width={220}
                 className="h-11 w-auto"
@@ -59,13 +67,13 @@ export function AdminHeader() {
             <button
               type="button"
               onClick={() => setIsDrawerOpen(false)}
-              className="p-2 -m-2 text-solid-matte-gray hover:text-blackout"
+              className="text-solid-matte-gray hover:text-blackout -m-2 p-2"
               aria-label="Close menu"
             >
               <ReactSVG src="/graphics/close.svg" />
             </button>
           </div>
-          <span className="text-xs font-medium uppercase tracking-wider text-alexandra mb-4">
+          <span className="text-alexandra mb-4 text-xs font-medium tracking-wider uppercase">
             Admin
           </span>
           <nav className="flex flex-col gap-1">
@@ -77,7 +85,7 @@ export function AdminHeader() {
                     type="button"
                     onClick={() => handleNavClick({ target, label })}
                     className={cls(
-                      'px-3 py-3 text-left rounded-lg text-solid-matte-gray hover:bg-red-50 hover:text-red-600 font-medium'
+                      'text-solid-matte-gray rounded-lg px-3 py-3 text-left font-medium hover:bg-red-50 hover:text-red-600'
                     )}
                   >
                     {label}
@@ -86,9 +94,12 @@ export function AdminHeader() {
                   <Link
                     onClick={() => setIsDrawerOpen(false)}
                     href={target}
-                    key={label}
+                    key={target}
                     className={cls(
-                      'px-3 py-3 rounded-lg text-blackout hover:bg-tech-white transition-colors'
+                      'rounded-lg px-3 py-3 transition-colors',
+                      isLinkActive(pathname, target)
+                        ? 'bg-alexandra text-white'
+                        : 'text-blackout hover:bg-tech-white'
                     )}
                   >
                     {label}
@@ -101,25 +112,28 @@ export function AdminHeader() {
       <header
         className={cls(
           'sticky top-0 z-20 w-full border-b border-[#DADCE0]',
-          'bg-white text-blackout shadow-sm'
+          'text-blackout bg-white shadow-sm'
         )}
       >
-        <div className="mx-auto flex h-16 w-full max-w-[90rem] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-          <Link href="/admin" className="flex shrink-0 items-center min-w-0 gap-3">
+        <div className="mx-auto flex h-16 w-full max-w-360 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <Link
+            href="/admin"
+            className="flex min-w-0 shrink-0 items-center gap-3"
+          >
             <Image
               alt="GDG UNN Admin"
-              src="/graphics/logo-banner.svg"
+              src="/images/logo-banner.png"
               height={48}
               width={220}
               className="h-10 w-auto max-w-[180px] sm:max-w-[220px]"
               priority
             />
-            <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-medium uppercase tracking-wider bg-alexandra/10 text-alexandra border border-alexandra/30">
+            <span className="bg-alexandra/10 text-alexandra border-alexandra/30 hidden items-center rounded-sm border px-2.5 py-0.5 text-xs font-medium tracking-wider uppercase sm:inline-flex">
               Admin
             </span>
           </Link>
-          <nav className="flex flex-1 justify-end items-center gap-6">
-            <div className="hidden md:flex items-center gap-6">
+          <nav className="flex flex-1 items-center justify-end gap-6">
+            <div className="scrollbar-hide hidden max-w-full items-center gap-6 overflow-x-auto md:flex">
               {isHydrated &&
                 adminLinks.map(({ target, label }) =>
                   label === 'Log out' ? (
@@ -128,19 +142,21 @@ export function AdminHeader() {
                       type="button"
                       onClick={() => handleNavClick({ target, label })}
                       className={cls(
-                        'px-3 py-2 rounded-lg text-sm font-medium',
-                        'text-solid-matte-gray hover:bg-red-50 hover:text-red-600 transition-colors'
+                        'rounded-lg px-3 py-2 text-sm font-medium',
+                        'text-solid-matte-gray transition-colors hover:bg-red-50 hover:text-red-600'
                       )}
                     >
                       {label}
                     </button>
                   ) : (
                     <Link
-                      key={label}
+                      key={target}
                       href={target}
                       className={cls(
-                        'px-3 py-2 rounded-lg text-sm font-medium',
-                        'text-blackout hover:bg-tech-white transition-colors'
+                        'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                        isLinkActive(pathname, target)
+                          ? 'bg-alexandra text-white'
+                          : 'text-blackout hover:bg-tech-white'
                       )}
                     >
                       {label}
@@ -151,10 +167,10 @@ export function AdminHeader() {
             <button
               type="button"
               onClick={() => setIsDrawerOpen(true)}
-              className="p-2 -m-2 text-solid-matte-gray hover:text-blackout md:hidden"
+              className="text-solid-matte-gray hover:text-blackout -m-2 p-2 md:hidden"
               aria-label="Open menu"
             >
-              <ReactSVG src="/graphics/menu.svg" className="w-6 h-6" />
+              <ReactSVG src="/graphics/menu.svg" className="h-6 w-6" />
             </button>
           </nav>
         </div>
